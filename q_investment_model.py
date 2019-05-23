@@ -37,12 +37,12 @@ import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy import optimize
 
-# %% {"code_folding": [7, 31, 34, 37, 41, 45, 73, 109]}
+# %% {"code_folding": [7, 31, 34, 37, 41, 59, 67, 81, 108, 121]}
 # Class implementation
 
 class Qmod:
     """
-    A class representing Q investment model.
+    A class representing the Q investment model.
     """
     
     def __init__(self,beta,tau,alpha,omega,zeta,delta):
@@ -82,8 +82,11 @@ class Qmod:
     def j_k(self,i,k):
         iota = i/k - self.delta
         return(-(iota**2/2+iota*self.delta)*self.omega)
-        
+    
+    # Error in the euler equation implied by a k_0, k_1, k_2 triad.
+    # This can be solved to obtain the adequate triads.
     def eulerError(self,k0,k1,k2):
+        
         i0 = k1 - (1-self.delta)*k0
         i1 = k2 - (1-self.delta)*k1
         error = (1+self.j_i(i0,k0)) -\
@@ -92,12 +95,16 @@ class Qmod:
         
         return(error)
     
+    # Find the k_2 implied by the euler equation for an initial k_0,
+    # k_1.
     def k2(self,k0,k1):
         
         sol = optimize.root_scalar(lambda x: self.eulerError(k0,k1,x), x0=k0, x1=self.kss).root
         
         return(sol)
     
+    # Find the capital trajectory implied by the euler equation for
+    # an initial k_0, k_1.
     def shoot(self,k0,k1,t):
         k = np.zeros(t)
         k[0] = k0
@@ -111,7 +118,8 @@ class Qmod:
             
         return(k)
     
-    def find_k1(self,k0,T=20,tol = 10**(-4),maxiter = 100):
+    # Shooting algorithm to find k_1 given k_0.
+    def find_k1(self,k0,T=30,tol = 10**(-4),maxiter = 200):
             
         top = max(self.kss,k0)
         bot = min(self.kss,k0)
@@ -135,6 +143,9 @@ class Qmod:
             
         return(init)
     
+    # Construction of the policy rule by solving for k_1 given
+    # k_0 over a grid of points and then finding an interpolating
+    # function
     def solve(self,k_min=10**(-3), n_points = 50):
         
         k_max = 4*self.kss
@@ -146,7 +157,8 @@ class Qmod:
             k1[i] = self.find_k1(k0[i])
         
         self.k1Func = interpolate.interp1d(k0,k1)
-        
+    
+    # Simulation of capital dynamics from a starting k_0
     def simulate(self,k0,t):
         k = np.zeros(t)
         k[0]=k0
@@ -164,20 +176,16 @@ Qexample = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.5, zeta =  0, delt
 # Solve to find the policy rule (k[t+1] in terms of k[t])
 Qexample.solve()
 
-# Plot policy rule
-k = np.linspace(1,20,20)
-plt.plot(k,[Qexample.k1Func(x) for x in k])
-plt.title('Policy Rule')
-plt.xlabel('$k_t$')
-plt.ylabel('$k_{t+1}$')
-
 # %%
 # Plot policy rule
-k = np.linspace(1,20,20)
+
+k = np.linspace(1,3*Qexample.kss,20)
+
 plt.plot(k,[Qexample.k1Func(x) for x in k])
 plt.title('Policy Rule')
 plt.xlabel('k(t)')
 plt.ylabel('k(t+1)')
+plt.show()
 
 # %%
 # Find capital dynamics from a given starting capital
@@ -189,6 +197,33 @@ k = Qexample.simulate(k0,t)
 plt.figure()
 plt.plot(k)
 plt.axhline(y = Qexample.kss,linestyle = '--',color = 'k', label = '$\\bar{k}$')
+plt.title('Capital')
+plt.xlabel('Time')
+plt.legend()
+plt.show()
+
+# %% [markdown]
+# ### The impact of adjustment costs
+
+# %%
+# Create and solve two instances, one with high and one with low adjustment costs omega
+Qlow  = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.2, zeta =  0, delta = 0.05)
+Qhigh = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  2.0, zeta =  0, delta = 0.05)
+
+Qlow.solve()
+Qhigh.solve()
+
+# Simulate adjustment from an initial capital level
+k0 = 20
+t = 50
+k_low = Qlow.simulate(k0,t)
+k_high = Qhigh.simulate(k0,t)
+
+# Plot
+plt.figure()
+plt.plot(k_low, label = 'Low $\\omega$')
+plt.plot(k_high, label = 'High $\\omega$')
+plt.axhline(y = Qexample.kss,linestyle = '--',color = 'k', label = 'Steady state ${k}$')
 plt.title('Capital')
 plt.xlabel('Time')
 plt.legend()
