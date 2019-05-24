@@ -99,9 +99,12 @@ class Qmod:
     # k_1.
     def k2(self,k0,k1):
         
-        sol = optimize.root_scalar(lambda x: self.eulerError(k0,k1,x), x0=k0, x1=self.kss).root
+        sol = optimize.root_scalar(lambda x: self.eulerError(k0,k1,x), x0=k0, x1=self.kss)
         
-        return(sol)
+        if sol.flag != "converged":
+            raise Exception('Could not find capital value satisfying Euler equation')
+        
+        return(sol.root)
     
     # Find the capital trajectory implied by the euler equation for
     # an initial k_0, k_1.
@@ -111,7 +114,12 @@ class Qmod:
         k[1] = k1
         for i in range(2,t):
             
-            k[i] = self.k2(k[i-2],k[i-1])
+            try:
+                k[i] = self.k2(k[i-2],k[i-1])
+            except:
+                k[i:] = k[i]
+                return(k)
+                
             if k[i]<0 or (abs(k[i]-self.kss) > 2*abs(k0-self.kss)):
                 k[i:] = k[i]
                 return(k)
@@ -119,8 +127,8 @@ class Qmod:
         return(k)
     
     # Shooting algorithm to find k_1 given k_0.
-    def find_k1(self,k0,T=30,tol = 10**(-6),maxiter = 200):
-            
+    def find_k1(self,k0,T=30,tol = 10**(-3),maxiter = 200):
+
         top = max(self.kss,k0)
         bot = min(self.kss,k0)
         
@@ -248,7 +256,7 @@ class Qmod:
         plt.legend()
         plt.show()
 
-
+Qexample = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.5, zeta =  0, delta = 0.05)
 # %% [markdown]
 # ## _Examples_
 
@@ -264,12 +272,15 @@ Qexample.phase_diagram(arrows = False, n_arrows = 5)
 
 k = np.linspace(1,3*Qexample.kss,20)
 
-plt.plot(k,[Qexample.k1Func(x) for x in k])
+plt.figure()
+plt.plot(k,[Qexample.k1Func(x) for x in k], label = "Optimal capital")
+plt.plot(k,k, linestyle = '--', color = 'k', label = "45\° line")
+plt.plot(Qexample.kss,Qexample.kss,'*r', label = "Steady state")
 plt.title('Policy Rule')
 plt.xlabel('k(t)')
 plt.ylabel('k(t+1)')
+plt.legend()
 plt.show()
-
 # %%
 # Find capital dynamics from a given starting capital
 k0 = 23
@@ -290,8 +301,8 @@ plt.show()
 
 # %%
 # Create and solve two instances, one with high and one with low adjustment costs omega
-Qlow  = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.2, zeta =  0, delta = 0.05)
-Qhigh = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  2.0, zeta =  0, delta = 0.05)
+Qlow  = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.1, zeta =  0, delta = 0.05)
+Qhigh = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.9, zeta =  0, delta = 0.05)
 
 Qlow.solve()
 Qhigh.solve()
