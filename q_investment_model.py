@@ -189,12 +189,15 @@ Qexample.solve()
 
 k = np.linspace(1,3*Qexample.kss,20)
 
-plt.plot(k,[Qexample.k1Func(x) for x in k])
+plt.figure()
+plt.plot(k,[Qexample.k1Func(x) for x in k], label = "Optimal capital")
+plt.plot(k,k, linestyle = '--', color = 'k', label = "45\° line")
+plt.plot(Qexample.kss,Qexample.kss,'*r', label = "Steady state")
 plt.title('Policy Rule')
 plt.xlabel('k(t)')
 plt.ylabel('k(t+1)')
+plt.legend()
 plt.show()
-
 # %%
 # Find capital dynamics from a given starting capital
 k0 = 23
