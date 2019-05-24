@@ -119,7 +119,7 @@ class Qmod:
         return(k)
     
     # Shooting algorithm to find k_1 given k_0.
-    def find_k1(self,k0,T=30,tol = 10**(-4),maxiter = 200):
+    def find_k1(self,k0,T=30,tol = 10**(-6),maxiter = 200):
             
         top = max(self.kss,k0)
         bot = min(self.kss,k0)
@@ -146,7 +146,7 @@ class Qmod:
     # Construction of the policy rule by solving for k_1 given
     # k_0 over a grid of points and then finding an interpolating
     # function
-    def solve(self,k_min=10**(-3), n_points = 50):
+    def solve(self,k_min=10**(-4), n_points = 50):
         
         k_max = 4*self.kss
         k0 = np.linspace(k_min,k_max,n_points)
@@ -165,6 +165,88 @@ class Qmod:
         for i in range(1,t):
             k[i] = self.k1Func(k[i-1])
         return(k)
+        
+    def iota(self,lam_1):
+        iota = (lam_1-1)/self.omega
+        return(iota)
+    
+    def jkl(self,lam_1):
+        iota = self.iota(lam_1)
+        jk = -(iota**2/2+iota*self.delta)*self.omega
+        return(jk)
+        
+    def dLambda(self,k,lam):
+        
+        bdel = self.beta*(1-self.delta)
+        # dLambda solves the following equation:
+        error = lambda x: ((1-bdel)*lam-(1-self.tau)*self.f_k(k) + self.jkl(lam+x)*self.beta)/bdel - x
+        sol = optimize.root_scalar(error, bracket = [-1,1])
+        
+        return(sol)
+    
+    def dK(self,k,lam):
+        iota = (lam-1)/self.omega
+        return(iota*k)
+    
+    def lambda0locus(self,k):
+        
+        if k > self.kss:
+            x1 = 0.5
+        else:
+            x1 = 1.5
+            
+        bdel = self.beta*(1-self.delta)
+        # Lambda solves the following equation:
+        error = lambda x: (1-bdel)*x - (1-self.tau)*self.f_k(k) + self.jkl(x)*self.beta
+        lam = optimize.root_scalar(error, x0 = 1, x1 = x1).root
+        
+        return(lam)
+        
+    def phase_diagram(self, npoints = 200, arrows = False, n_arrows = 5):
+        """
+        Plots the model's phase diagram.
+        - npoints:  number of ticks in the k axis.
+        - arrows:   boolean to indicate whether or not to draw arrow
+                    grid.
+        - n_arrows: controls the number of arrows in the grid
+        """
+        
+        k = np.linspace(0.9*self.kss,1.1*self.kss,npoints)
+        
+        # Plot k0 locus
+        #plt.plot(k,self.k0locus(k),label = '$\\dot{k}=0$ locus')
+        # Plot lambda0 locus
+        plt.plot(k,[self.lambda0locus(x) for x in k],label = '$\\dot{\\lambda}=0$ locus')
+        # Plot saddle path
+        #plt.plot(k,self.cFunc(k), label = 'Saddle path')
+        # Plot steady state
+        plt.plot(self.kss,1,'*r', label = 'Steady state')
+        
+        # Add arrows ilustrating behavior in different parts of
+        # the diagram.
+        # Taken from:
+        # http://systems-sciences.uni-graz.at/etextbook/sw2/phpl_python.html
+        if arrows:
+            x = np.linspace(k[0],k[-1],n_arrows)
+            y = np.linspace(0.5,1.5,n_arrows)
+            
+            X, Y = np.meshgrid(x,y)
+            print(type(X))
+            dLambda = self.dLambda(X,Y)
+            dK = self.dK(X,Y)
+            
+            M = (np.hypot(dK, dLambda))
+            M[ M == 0] = 1.
+            dK /= M
+            dLambda /= M
+            plt.quiver(X, Y, dK, dLambda, M, pivot='mid', alpha = 0.3)
+        
+        # Labels
+        plt.title('Phase diagram and consumption rule\n(normalized by efficiency units)')
+        plt.xlabel('K')
+        plt.ylabel('Lambda')
+        plt.legend()
+        plt.show()
 
 
 # %% [markdown]
@@ -176,6 +258,7 @@ Qexample = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.5, zeta =  0, delt
 # Solve to find the policy rule (k[t+1] in terms of k[t])
 Qexample.solve()
 
+Qexample.phase_diagram(arrows = False, n_arrows = 5)
 # %%
 # Plot policy rule
 
