@@ -253,3 +253,25 @@ class Qmod:
         plt.ylabel('Lambda')
         plt.legend()
         plt.show()
+
+# %% [markdown]
+# # Example
+
+# %%
+# Create a model object
+Qexample = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.5, zeta =  0, delta = 0.05)
+# Generate its phase diagram
+Qexample.phase_diagram()
+
+# %% [markdown]
+# Why is the $\dot{\lambda}=0$ locus truncated?
+#
+# With constant prices, there may be instances where $\lambda_t$ can not be equal to $\lambda_{t+1}$. Notice first that $\lambda_t$ is a function of $\lambda_{t+1}$ (current marginal value of capital is an expected function of its expected marginal value tomorrow).
+#
+# If, for instance, $k_t$ is low, the marginal productivity of capital will be high, and this can push $\lambda_t$ above $\lambda_{t+1}$, as is the case in the following diagram, which plots $\lambda_t$ computed from the envelope condition at a fixed $k$ and varying $\lambda_{t+1}$.
+
+# %%
+Qexample.plotEnvelopeCond(k=2)
+
+# %% [markdown]
+# Note that the envelope condition never crosses the $\lambda_t = \lambda_{t+1}$ line. Thus, there is no $\dot{\lambda}=0$ locus at $k=2$.
