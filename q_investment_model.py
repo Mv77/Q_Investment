@@ -186,15 +186,36 @@ class Qmod:
     def dLambda(self,k,lam):
         
         bdel = self.beta*(1-self.delta)
+        
         # dLambda solves the following equation:
         error = lambda x: ((1-bdel)*lam-(1-self.tau)*self.f_k(k) + self.jkl(lam+x)*self.beta)/bdel - x
         sol = optimize.root_scalar(error, bracket = [-1,1])
         
-        return(sol)
+        if sol.flag != 'converged':
+            return( np.float('nan') )
+        else:
+            return(sol.root)
     
     def dK(self,k,lam):
         iota = (lam-1)/self.omega
         return(iota*k)
+    
+    def plotEnvelopeCond(self,k, npoints = 10):
+        
+        lam_1 = np.linspace(0,2,npoints)
+        prod = np.ones(npoints)*(1-self.tau)*self.f_k(k)
+        iota = (lam_1-1)/self.omega
+        jk = - (iota**2/2+iota*self.delta)*self.omega
+        inv_gain = -jk*self.beta
+        fut_val = (1-self.delta)*self.beta*lam_1
+        plt.plot(lam_1,prod+inv_gain+fut_val, label = "Env. Condition value")
+        plt.plot(lam_1,lam_1, linestyle = '--', color = 'k', label = "45° line")
+        
+        plt.legend()
+        plt.title('$\\lambda (t)$ vs $\lambda (t+1)$ at $k =$ %1.2f' %(k))
+        plt.xlabel('$\\lambda (t+1)$')
+        plt.ylabel('$\\lambda (t)$')
+        
     
     def lambda0locus(self,k):
         
@@ -204,121 +225,31 @@ class Qmod:
             x1 = 1.5
             
         bdel = self.beta*(1-self.delta)
+        
         # Lambda solves the following equation:
         error = lambda x: (1-bdel)*x - (1-self.tau)*self.f_k(k) + self.jkl(x)*self.beta
-        lam = optimize.root_scalar(error, x0 = 1, x1 = x1).root
         
-        return(lam)
+        sol = optimize.root_scalar(error, x0 = 1, x1 = x1)
+        if sol.flag != 'converged':
+            return( np.float('nan') )
+        else:
+            return(sol.root)
         
-    def phase_diagram(self, npoints = 200, arrows = False, n_arrows = 5):
-        """
-        Plots the model's phase diagram.
-        - npoints:  number of ticks in the k axis.
-        - arrows:   boolean to indicate whether or not to draw arrow
-                    grid.
-        - n_arrows: controls the number of arrows in the grid
-        """
+    def phase_diagram(self, npoints = 200):
+       
+        k = np.linspace(0.01*self.kss,2*self.kss,npoints)
         
-        k = np.linspace(0.9*self.kss,1.1*self.kss,npoints)
-        
+        plt.figure()
         # Plot k0 locus
-        #plt.plot(k,self.k0locus(k),label = '$\\dot{k}=0$ locus')
+        plt.plot(k,1*np.ones(npoints),label = '$\\dot{k}=0$ locus')
         # Plot lambda0 locus
         plt.plot(k,[self.lambda0locus(x) for x in k],label = '$\\dot{\\lambda}=0$ locus')
-        # Plot saddle path
-        #plt.plot(k,self.cFunc(k), label = 'Saddle path')
         # Plot steady state
         plt.plot(self.kss,1,'*r', label = 'Steady state')
         
-        # Add arrows ilustrating behavior in different parts of
-        # the diagram.
-        # Taken from:
-        # http://systems-sciences.uni-graz.at/etextbook/sw2/phpl_python.html
-        if arrows:
-            x = np.linspace(k[0],k[-1],n_arrows)
-            y = np.linspace(0.5,1.5,n_arrows)
-            
-            X, Y = np.meshgrid(x,y)
-            print(type(X))
-            dLambda = self.dLambda(X,Y)
-            dK = self.dK(X,Y)
-            
-            M = (np.hypot(dK, dLambda))
-            M[ M == 0] = 1.
-            dK /= M
-            dLambda /= M
-            plt.quiver(X, Y, dK, dLambda, M, pivot='mid', alpha = 0.3)
-        
         # Labels
-        plt.title('Phase diagram and consumption rule\n(normalized by efficiency units)')
+        plt.title('Phase diagram')
         plt.xlabel('K')
         plt.ylabel('Lambda')
         plt.legend()
         plt.show()
-
-Qexample = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.5, zeta =  0, delta = 0.05)
-# %% [markdown]
-# ## _Examples_
-
-# %%
-# Create model object
-Qexample = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.5, zeta =  0, delta = 0.05)
-# Solve to find the policy rule (k[t+1] in terms of k[t])
-Qexample.solve()
-
-Qexample.phase_diagram(arrows = False, n_arrows = 5)
-# %%
-# Plot policy rule
-
-k = np.linspace(1,3*Qexample.kss,20)
-
-plt.figure()
-plt.plot(k,[Qexample.k1Func(x) for x in k], label = "Optimal capital")
-plt.plot(k,k, linestyle = '--', color = 'k', label = "45\° line")
-plt.plot(Qexample.kss,Qexample.kss,'*r', label = "Steady state")
-plt.title('Policy Rule')
-plt.xlabel('k(t)')
-plt.ylabel('k(t+1)')
-plt.legend()
-plt.show()
-# %%
-# Find capital dynamics from a given starting capital
-k0 = 23
-t = 50
-k = Qexample.simulate(k0,t)
-
-# Plot
-plt.figure()
-plt.plot(k)
-plt.axhline(y = Qexample.kss,linestyle = '--',color = 'k', label = '$\\bar{k}$')
-plt.title('Capital')
-plt.xlabel('Time')
-plt.legend()
-plt.show()
-
-# %% [markdown]
-# ### The impact of adjustment costs
-
-# %%
-# Create and solve two instances, one with high and one with low adjustment costs omega
-Qlow  = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.1, zeta =  0, delta = 0.05)
-Qhigh = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.9, zeta =  0, delta = 0.05)
-
-Qlow.solve()
-Qhigh.solve()
-
-# Simulate adjustment from an initial capital level
-k0 = 20
-t = 50
-k_low = Qlow.simulate(k0,t)
-k_high = Qhigh.simulate(k0,t)
-
-# Plot
-plt.figure()
-plt.plot(k_low, label = 'Low $\\omega$')
-plt.plot(k_high, label = 'High $\\omega$')
-plt.axhline(y = Qexample.kss,linestyle = '--',color = 'k', label = 'Steady state ${k}$')
-plt.title('Capital')
-plt.xlabel('Time')
-plt.legend()
-plt.show()
