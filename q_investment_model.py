@@ -216,6 +216,17 @@ class Qmod:
         plt.xlabel('$\\lambda (t+1)$')
         plt.ylabel('$\\lambda (t)$')
         
+    # Compute lambda_t using k0,k1 and the envelope condition
+    def findLambda(self,k0,k1):
+        
+        i = k1 - (1-self.delta)*k0
+        iota = i/k0 - self.delta
+        lam1 = iota*self.omega + 1
+        
+        lam = (1-self.tau)*self.f_k(k0) - self.j_k(i,k0)*self.beta + self.beta*(1-self.delta)*lam1
+        
+        return(lam)
+        
     
     def lambda0locus(self,k):
         
@@ -235,9 +246,9 @@ class Qmod:
         else:
             return(sol.root)
         
-    def phase_diagram(self, npoints = 200):
+    def phase_diagram(self, npoints = 200, stableArm = False):
        
-        k = np.linspace(0.01*self.kss,2*self.kss,npoints)
+        k = np.linspace(0.1*self.kss,2*self.kss,npoints)
         
         plt.figure()
         # Plot k0 locus
@@ -246,6 +257,14 @@ class Qmod:
         plt.plot(k,[self.lambda0locus(x) for x in k],label = '$\\dot{\\lambda}=0$ locus')
         # Plot steady state
         plt.plot(self.kss,1,'*r', label = 'Steady state')
+        
+        if stableArm:
+            
+            if self.k1Func is None:
+                raise Exception('Solve the model first to plot the stable arm!')
+            else:
+                lam = [self.findLambda(k0 = x, k1 = self.k1Func(x)) for x in k]
+                plt.plot(k,lam, label = 'Stable arm')
         
         # Labels
         plt.title('Phase diagram')
@@ -261,7 +280,8 @@ class Qmod:
 # Create a model object
 Qexample = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.5, zeta =  0, delta = 0.05)
 # Generate its phase diagram
-Qexample.phase_diagram()
+Qexample.solve()
+Qexample.phase_diagram(stableArm = True)
 
 # %% [markdown]
 # Why is the $\dot{\lambda}=0$ locus truncated?
