@@ -37,24 +37,24 @@ import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy import optimize
 
-# %% {"code_folding": [7, 31, 34, 37, 41, 59, 67, 81, 108, 121]}
+# %% {"code_folding": [40, 45]}
 # Class implementation
-
 class Qmod:
     """
     A class representing the Q investment model.
     """
     
-    def __init__(self,beta,tau,alpha,omega,zeta,delta):
+    def __init__(self,beta = 0.98,tau = 0.05,alpha = 0.33,omega = 0.2,zeta = 0,delta = 0.1):
         """
         Inputs:
-        - Beta:
-        - Tau:
-        - Alpha:
-        - Omega:
-        - Zeta:
-        - Delta
+        - Beta: utility discount factor.
+        - Tau: corporate tax rate.
+        - Alpha: output elasticity with respect to capital.
+        - Omega: adjustment cost parameter.
+        - Zeta: investment tax credit.
+        - Delta: capital depreciation rate.
         """
+        
         # Assign parameter values
         self.beta = beta
         self.tau = tau
@@ -66,29 +66,36 @@ class Qmod:
         # Create empty consumption function
         self.k1Func = None
         
-        # Steady state capital
+        #  Compute steady state capital
         self.kss = ((1-(1-self.delta)*self.beta)/((1-self.tau)*self.alpha))**(1/(self.alpha-1))
-        
+    
+    # Compute marginal productivity of capital
     def f_k(self,k):
         return(self.alpha*k**(self.alpha-1))
     
+    # Compute investment adjustment cost
     def j(self,i,k):
         return(k/2*((i-self.delta*k)/k)**2*self.omega)
     
+    # Derivative of adjustment cost with respect to investment
     def j_i(self,i,k):
         iota = i/k - self.delta
         return(iota*self.omega)
     
+    # Derivative of adjustment cost with respect to capital.
     def j_k(self,i,k):
         iota = i/k - self.delta
         return(-(iota**2/2+iota*self.delta)*self.omega)
     
-    # Error in the euler equation implied by a k_0, k_1, k_2 triad.
+    # Error in the euler Equation implied by a k_0, k_1, k_2 triad.
     # This can be solved to obtain the adequate triads.
     def eulerError(self,k0,k1,k2):
         
+        # Compute implied investments at t=0 and t=1.
         i0 = k1 - (1-self.delta)*k0
         i1 = k2 - (1-self.delta)*k1
+        
+        # Compute implied error in the Euler equation
         error = (1+self.j_i(i0,k0)) -\
         ((1-self.tau)*self.f_k(k1) +\
          ((1-self.delta) + (1-self.delta)*self.j_i(i1,k1) - self.j_k(i1,k1))*self.beta)
@@ -99,8 +106,10 @@ class Qmod:
     # k_1.
     def k2(self,k0,k1):
         
+        # Find the k2 that is consistent with the Euler equation
         sol = optimize.root_scalar(lambda x: self.eulerError(k0,k1,x), x0=k0, x1=self.kss)
         
+        # Return exception if no compatible capital is found
         if sol.flag != "converged":
             raise Exception('Could not find capital value satisfying Euler equation')
         
@@ -109,18 +118,25 @@ class Qmod:
     # Find the capital trajectory implied by the euler equation for
     # an initial k_0, k_1.
     def shoot(self,k0,k1,t):
+        
+        # Initialize k
         k = np.zeros(t)
         k[0] = k0
         k[1] = k1
+        
+        # Simulate capital dynamics
         for i in range(2,t):
             
             try:
                 k[i] = self.k2(k[i-2],k[i-1])
             except:
+                # If at some point no solution can be found stop simulation.
                 k[i:] = k[i]
                 return(k)
                 
             if k[i]<0 or (abs(k[i]-self.kss) > 2*abs(k0-self.kss)):
+                # If a negative or diverging capital is obtained, stop
+                # simulation
                 k[i:] = k[i]
                 return(k)
             
@@ -128,25 +144,36 @@ class Qmod:
     
     # Shooting algorithm to find k_1 given k_0.
     def find_k1(self,k0,T=30,tol = 10**(-3),maxiter = 200):
-
+    
+        # Initialize interval over which a solution is searched.
         top = max(self.kss,k0)
         bot = min(self.kss,k0)
         
         for k in range(maxiter):
             
+            # Simulate capital dynamics at the midpoint of the
+            # current interval.
             init = (top+bot)/2
             path = self.shoot(k0,init,T)
-    
+            
+            # Check the final value of capital
             k_f = path[-1]
+            
             if np.isnan(k_f):
                 bot = init
             else:
                 if abs(k_f - self.kss)<tol:
+                    # Stop if capital reaches and stays at
+                    # the steady state
                     return(init)
                 else:
                     if k_f >= self.kss:
+                        # If capital ends up above steady state,
+                        # we are underestimating k_1.
                         top = init
                     else:
+                        # If capital ends up below steady state,
+                        # we are overestimating k_1
                         bot = init
             
         return(init)
@@ -156,14 +183,18 @@ class Qmod:
     # function
     def solve(self,k_min=10**(-3), n_points = 50):
         
+        # Create k_0 grid
         k_max = 4*self.kss
         k0 = np.linspace(k_min,k_max,n_points)
         k1 = np.zeros(len(k0))
         
+        # Find k_0 at each point in the grid
         for i in range(len(k0)):
             
             k1[i] = self.find_k1(k0[i])
         
+        # Interpolate over the grid to get a continuous
+        # function
         self.k1Func = interpolate.interp1d(k0,k1)
     
     # Simulation of capital dynamics from a starting k_0
@@ -173,25 +204,22 @@ class Qmod:
         for i in range(1,t):
             k[i] = self.k1Func(k[i-1])
         return(k)
-
-Qexample = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.5, zeta =  0, delta = 0.05)
 # %% [markdown]
 # ## _Examples_
 
 # %%
 # Create model object
-Qexample = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.5, zeta =  0, delta = 0.05)
+Qexample = Qmod()
 # Solve to find the policy rule (k[t+1] in terms of k[t])
 Qexample.solve()
 
 # %%
 # Plot policy rule
-
 k = np.linspace(1,3*Qexample.kss,20)
 
 plt.figure()
 plt.plot(k,[Qexample.k1Func(x) for x in k], label = "Optimal capital")
-plt.plot(k,k, linestyle = '--', color = 'k', label = "45\° line")
+plt.plot(k,k, linestyle = '--', color = 'k', label = "45° line")
 plt.plot(Qexample.kss,Qexample.kss,'*r', label = "Steady state")
 plt.title('Policy Rule')
 plt.xlabel('k(t)')
@@ -200,8 +228,10 @@ plt.legend()
 plt.show()
 # %%
 # Find capital dynamics from a given starting capital
-k0 = 23
+k0 = 2*Qexample.kss
 t = 50
+
+# Simulate capital trajectory
 k = Qexample.simulate(k0,t)
 
 # Plot
@@ -218,14 +248,14 @@ plt.show()
 
 # %%
 # Create and solve two instances, one with high and one with low adjustment costs omega
-Qlow  = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.1, zeta =  0, delta = 0.05)
-Qhigh = Qmod(beta = 0.99,tau = 0, alpha = 0.33, omega =  0.9, zeta =  0, delta = 0.05)
+Qlow  = Qmod(omega =  0.1)
+Qhigh = Qmod(omega =  0.9)
 
 Qlow.solve()
 Qhigh.solve()
 
 # Simulate adjustment from an initial capital level
-k0 = 20
+k0 = 2*Qexample.kss
 t = 50
 k_low = Qlow.simulate(k0,t)
 k_high = Qhigh.simulate(k0,t)
