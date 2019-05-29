@@ -303,19 +303,19 @@ class Qmod:
         plt.ylabel('Lambda')
         plt.legend()
         plt.show()
-        
+
 # %% [markdown]
-# # Example
+# # Examples
+
+# %% [markdown]
+# ## 1. Model solution and policy rule.
 
 # %%
-
 # Create model object
 Qexample = Qmod()
 # Solve to find the policy rule (k[t+1] in terms of k[t])
 Qexample.solve()
-# Generate its phase diagram
-Qexample.phase_diagram(stableArm = True)
-# %%
+
 # Plot policy rule
 k = np.linspace(1,3*Qexample.kss,20)
 
@@ -328,6 +328,9 @@ plt.xlabel('k(t)')
 plt.ylabel('k(t+1)')
 plt.legend()
 plt.show()
+# %% [markdown]
+# ## 2. Simulation of capital dynamics.
+
 # %%
 # Find capital dynamics from a given starting capital
 k0 = 2*Qexample.kss
@@ -346,7 +349,7 @@ plt.legend()
 plt.show()
 
 # %% [markdown]
-# The impact of ajdustment costs
+# ## 3. The impact of ajdustment costs
 
 # %%
 # Create and solve two instances, one with high and one with low adjustment costs omega
@@ -357,7 +360,7 @@ Qlow.solve()
 Qhigh.solve()
 
 # Simulate adjustment from an initial capital level
-k0 = 2*Qexample.kss
+k0 = 2*Qhigh.kss
 t = 50
 k_low = Qlow.simulate(k0,t)
 k_high = Qhigh.simulate(k0,t)
@@ -366,15 +369,25 @@ k_high = Qhigh.simulate(k0,t)
 plt.figure()
 plt.plot(k_low, label = 'Low $\\omega$')
 plt.plot(k_high, label = 'High $\\omega$')
-plt.axhline(y = Qexample.kss,linestyle = '--',color = 'k', label = 'Steady state ${k}$')
+plt.axhline(y = Qhigh.kss,linestyle = '--',color = 'k', label = 'Steady state ${k}$')
 plt.title('Capital')
 plt.xlabel('Time')
 plt.legend()
 plt.show()
 # %% [markdown]
+# ## 4. Phase diagram.
+
+# %%
+# Create and solve model object
+Qexample = Qmod()
+Qexample.solve()
+# Generate its phase diagram
+Qexample.phase_diagram(stableArm = True)
+
+# %% [markdown]
 # Why is the $\dot{\lambda}=0$ locus truncated?
 #
-# With constant prices, there may be instances where $\lambda_t$ can not be equal to $\lambda_{t+1}$. Notice first that $\lambda_t$ is a function of $\lambda_{t+1}$ (current marginal value of capital is an expected function of its expected marginal value tomorrow).
+# With constant prices, there may be instances where $\lambda_t$ can not be equal to $\lambda_{t+1}$. Notice first that $\lambda_t$ is a function of $\lambda_{t+1}$ (current marginal value of capital is a function of its expected marginal value tomorrow).
 #
 # If, for instance, $k_t$ is low, the marginal productivity of capital will be high, and this can push $\lambda_t$ above $\lambda_{t+1}$, as is the case in the following diagram, which plots $\lambda_t$ computed from the envelope condition at a fixed $k$ and varying $\lambda_{t+1}$.
 
