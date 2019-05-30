@@ -63,11 +63,14 @@ class Qmod:
         self.zeta = zeta
         self.delta = delta
         
+        # Set the price of capital after ITC
+        self.P = (1-self.zeta)
+        
         # Create empty consumption function
         self.k1Func = None
         
         #  Compute steady state capital
-        self.kss = ((1-(1-self.delta)*self.beta)/((1-self.tau)*self.alpha))**(1/(self.alpha-1))
+        self.kss = ((1-(1-self.delta)*self.beta)*self.P/((1-self.tau)*self.alpha))**(1/(self.alpha-1))
     
     # Compute marginal productivity of capital
     def f_k(self,k):
@@ -96,9 +99,9 @@ class Qmod:
         i1 = k2 - (1-self.delta)*k1
         
         # Compute implied error in the Euler equation
-        error = (1+self.j_i(i0,k0)) -\
+        error = (1+self.j_i(i0,k0))*self.P -\
         ((1-self.tau)*self.f_k(k1) +\
-         ((1-self.delta) + (1-self.delta)*self.j_i(i1,k1) - self.j_k(i1,k1))*self.beta)
+         ((1-self.delta) + (1-self.delta)*self.j_i(i1,k1) - self.j_k(i1,k1))*self.P*self.beta)
         
         return(error)
     
@@ -206,7 +209,7 @@ class Qmod:
         return(k)
         
     def iota(self,lam_1):
-        iota = (lam_1-1)/self.omega
+        iota = ( lam_1/self.P - 1)/self.omega
         return(iota)
     
     def jkl(self,lam_1):
@@ -219,7 +222,7 @@ class Qmod:
         bdel = self.beta*(1-self.delta)
         
         # dLambda solves the following equation:
-        error = lambda x: ((1-bdel)*lam-(1-self.tau)*self.f_k(k) + self.jkl(lam+x)*self.beta)/bdel - x
+        error = lambda x: ((1-bdel)*lam-(1-self.tau)*self.f_k(k) + self.jkl(lam+x)*self.beta*self.P)/bdel - x
         sol = optimize.root_scalar(error, bracket = [-1,1])
         
         if sol.flag != 'converged':
@@ -228,16 +231,16 @@ class Qmod:
             return(sol.root)
     
     def dK(self,k,lam):
-        iota = (lam-1)/self.omega
+        iota = (lam/self.P-1)/self.omega
         return(iota*k)
     
     def plotEnvelopeCond(self,k, npoints = 10):
         
         lam_1 = np.linspace(0,2,npoints)
         prod = np.ones(npoints)*(1-self.tau)*self.f_k(k)
-        iota = (lam_1-1)/self.omega
+        iota = (lam_1/self.P - 1)/self.omega
         jk = - (iota**2/2+iota*self.delta)*self.omega
-        inv_gain = -jk*self.beta
+        inv_gain = -jk*self.beta*self.P
         fut_val = (1-self.delta)*self.beta*lam_1
         plt.plot(lam_1,prod+inv_gain+fut_val, label = "Env. Condition value")
         plt.plot(lam_1,lam_1, linestyle = '--', color = 'k', label = "45° line")
@@ -252,9 +255,9 @@ class Qmod:
         
         i = k1 - (1-self.delta)*k0
         iota = i/k0 - self.delta
-        lam1 = iota*self.omega + 1
-        
-        lam = (1-self.tau)*self.f_k(k0) - self.j_k(i,k0)*self.beta + self.beta*(1-self.delta)*lam1
+        q1 = iota*self.omega + 1
+        lam1 = q1*self.P 
+        lam = (1-self.tau)*self.f_k(k0) - self.j_k(i,k0)*self.beta*self.P + self.beta*(1-self.delta)*lam1
         
         return(lam)
         
@@ -262,32 +265,32 @@ class Qmod:
     def lambda0locus(self,k):
         
         if k > self.kss:
-            x1 = 0.5
+            x1 = 0.5*self.P
         else:
-            x1 = 1.5
+            x1 = 1.5*self.P
             
         bdel = self.beta*(1-self.delta)
         
         # Lambda solves the following equation:
-        error = lambda x: (1-bdel)*x - (1-self.tau)*self.f_k(k) + self.jkl(x)*self.beta
+        error = lambda x: (1-bdel)*x - (1-self.tau)*self.f_k(k) + self.jkl(x)*self.beta*self.P
         
-        sol = optimize.root_scalar(error, x0 = 1, x1 = x1)
+        sol = optimize.root_scalar(error, x0 = self.P, x1 = x1)
         if sol.flag != 'converged':
             return( np.float('nan') )
         else:
             return(sol.root)
         
-    def phase_diagram(self, npoints = 200, stableArm = False):
-       
-        k = np.linspace(0.1*self.kss,2*self.kss,npoints)
+    def phase_diagram(self, k_min = 0.1, k_max = 2,npoints = 200, stableArm = False):
+        
+        k = np.linspace(k_min*self.kss,k_max*self.kss,npoints)
         
         plt.figure()
         # Plot k0 locus
-        plt.plot(k,1*np.ones(npoints),label = '$\\dot{k}=0$ locus')
+        plt.plot(k,self.P*np.ones(npoints),label = '$\\dot{k}=0$ locus')
         # Plot lambda0 locus
         plt.plot(k,[self.lambda0locus(x) for x in k],label = '$\\dot{\\lambda}=0$ locus')
         # Plot steady state
-        plt.plot(self.kss,1,'*r', label = 'Steady state')
+        plt.plot(self.kss,self.P,'*r', label = 'Steady state')
         
         if stableArm:
             
