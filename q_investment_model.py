@@ -37,6 +37,7 @@ import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy import optimize
 
+from numba import jit
 # %% {"code_folding": [40, 45]}
 # Class implementation
 class Qmod:
@@ -72,6 +73,10 @@ class Qmod:
         #  Compute steady state capital
         self.kss = ((1-(1-self.delta)*self.beta)*self.P/((1-self.tau)*self.alpha))**(1/(self.alpha-1))
     
+    # Coumpute output
+    def f(self,k):
+        return(k**self.alpha)
+        
     # Compute marginal productivity of capital
     def f_k(self,k):
         return(self.alpha*k**(self.alpha-1))
@@ -306,7 +311,32 @@ class Qmod:
         plt.ylabel('Lambda')
         plt.legend()
         plt.show()
+    
+    def value_func(self,k,tol = 10**(-2)):
+        
+        if abs(k-self.kss) > tol:
+            
+            k1 = self.k1Func(k)
+            pi = (1-self.tau)*self.f(k)
+            i = k1 - k*(1-self.delta)
+            
+            flow = pi - (i + self.j(i,k))*self.P*self.beta
+            return(flow + self.value_func(k1,tol))
+        
+        else:
+            
+            pi = (1-self.tau)*self.f(self.kss)
+            i = self.delta*self.kss
+            flow = pi - i*self.P*self.beta
+            return(flow/(1-self.beta))
+            
+         
 
+# %%
+Qexample = Qmod()
+Qexample.solve()
+# %%
+Qexample.value_func(1.1*Qexample.kss, tol = 10**(-2))
 # %% [markdown]
 # # Examples
 
