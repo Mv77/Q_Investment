@@ -1,45 +1,15 @@
 # -*- coding: utf-8 -*-
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,py:percent
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.1'
-#       jupytext_version: 0.8.5
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-#   language_info:
-#     codemirror_mode:
-#       name: ipython
-#       version: 3
-#     file_extension: .py
-#     mimetype: text/x-python
-#     name: python
-#     nbconvert_exporter: python
-#     pygments_lexer: ipython3
-#     version: 3.7.1
-# ---
+"""
+Created on Fri May 31 15:15:05 2019
 
-# %% [markdown]
-# # Numerical Solution of the Abel/Hayashi "q" investment model
-#
-# ## [Mateo Velásquez-Giraldo](https://github.com/Mv77)
+@author: Mateo
+"""
 
-# %% {"code_folding": []}
-# Preamble
 import numpy as np
 import matplotlib.pyplot as plt
-
 from scipy import interpolate
 from scipy import optimize
 
-from numba import jit
-# %% {"code_folding": [40, 45]}
-# Class implementation
 class Qmod:
     """
     A class representing the Q investment model.
@@ -73,9 +43,21 @@ class Qmod:
         #  Compute steady state capital
         self.kss = ((1-(1-self.delta)*self.beta)*self.P/((1-self.tau)*self.alpha))**(1/(self.alpha-1))
     
-    # Coumpute output
+    # Compute output
     def f(self,k):
         return(k**self.alpha)
+        
+    # Compute profit:
+    def pi(self,k):
+        return((1-self.tau)*self.f(k))
+    
+    # Compute expenditure:
+    def expend(self,k,i):
+        return((i+self.j(i,k))*self.P*self.beta)
+    
+    # Compute flow utility
+    def flow(self,k,i):
+        return(self.pi(k) - self.expend(k,i))
         
     # Compute marginal productivity of capital
     def f_k(self,k):
@@ -317,115 +299,12 @@ class Qmod:
         if abs(k-self.kss) > tol:
             
             k1 = self.k1Func(k)
-            pi = (1-self.tau)*self.f(k)
             i = k1 - k*(1-self.delta)
             
-            flow = pi - (i + self.j(i,k))*self.P*self.beta
-            return(flow + self.value_func(k1,tol))
+            return(self.flow(k,i) + self.beta*self.value_func(k1,tol))
         
         else:
             
-            pi = (1-self.tau)*self.f(self.kss)
-            i = self.delta*self.kss
-            flow = pi - i*self.P*self.beta
-            return(flow/(1-self.beta))
-            
-         
-
-# %%
-Qexample = Qmod()
-Qexample.solve()
-# %%
-Qexample.value_func(1.1*Qexample.kss, tol = 10**(-2))
-# %% [markdown]
-# # Examples
-
-# %% [markdown]
-# ## 1. Model solution and policy rule.
-
-# %%
-# Create model object
-Qexample = Qmod()
-# Solve to find the policy rule (k[t+1] in terms of k[t])
-Qexample.solve()
-
-# Plot policy rule
-k = np.linspace(1,3*Qexample.kss,20)
-
-plt.figure()
-plt.plot(k,[Qexample.k1Func(x) for x in k], label = "Optimal capital")
-plt.plot(k,k, linestyle = '--', color = 'k', label = "45° line")
-plt.plot(Qexample.kss,Qexample.kss,'*r', label = "Steady state")
-plt.title('Policy Rule')
-plt.xlabel('k(t)')
-plt.ylabel('k(t+1)')
-plt.legend()
-plt.show()
-# %% [markdown]
-# ## 2. Simulation of capital dynamics.
-
-# %%
-# Find capital dynamics from a given starting capital
-k0 = 2*Qexample.kss
-t = 50
-
-# Simulate capital trajectory
-k = Qexample.simulate(k0,t)
-
-# Plot
-plt.figure()
-plt.plot(k)
-plt.axhline(y = Qexample.kss,linestyle = '--',color = 'k', label = '$\\bar{k}$')
-plt.title('Capital')
-plt.xlabel('Time')
-plt.legend()
-plt.show()
-
-# %% [markdown]
-# ## 3. The impact of ajdustment costs
-
-# %%
-# Create and solve two instances, one with high and one with low adjustment costs omega
-Qlow  = Qmod(omega =  0.1)
-Qhigh = Qmod(omega =  0.9)
-
-Qlow.solve()
-Qhigh.solve()
-
-# Simulate adjustment from an initial capital level
-k0 = 2*Qhigh.kss
-t = 50
-k_low = Qlow.simulate(k0,t)
-k_high = Qhigh.simulate(k0,t)
-
-# Plot
-plt.figure()
-plt.plot(k_low, label = 'Low $\\omega$')
-plt.plot(k_high, label = 'High $\\omega$')
-plt.axhline(y = Qhigh.kss,linestyle = '--',color = 'k', label = 'Steady state ${k}$')
-plt.title('Capital')
-plt.xlabel('Time')
-plt.legend()
-plt.show()
-# %% [markdown]
-# ## 4. Phase diagram.
-
-# %%
-# Create and solve model object
-Qexample = Qmod()
-Qexample.solve()
-# Generate its phase diagram
-Qexample.phase_diagram(stableArm = True)
-
-# %% [markdown]
-# Why is the $\dot{\lambda}=0$ locus truncated?
-#
-# With constant prices, there may be instances where $\lambda_t$ can not be equal to $\lambda_{t+1}$. Notice first that $\lambda_t$ is a function of $\lambda_{t+1}$ (current marginal value of capital is a function of its expected marginal value tomorrow).
-#
-# If, for instance, $k_t$ is low, the marginal productivity of capital will be high, and this can push $\lambda_t$ above $\lambda_{t+1}$, as is the case in the following diagram, which plots $\lambda_t$ computed from the envelope condition at a fixed $k$ and varying $\lambda_{t+1}$.
-
-# %%
-Qexample.plotEnvelopeCond(k=2)
-
-# %% [markdown]
-# Note that the envelope condition never crosses the $\lambda_t = \lambda_{t+1}$ line. Thus, there is no $\dot{\lambda}=0$ locus at $k=2$.
+            # If steady state is reached return present discounted value
+            # of all future flows (which will be identical)
+            return(self.flow(self.kss,self.kss*self.delta)/(1-self.beta))
