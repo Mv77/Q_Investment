@@ -40,22 +40,22 @@ from Q_investment import Qmod
 # %% {"code_folding": [40, 45]}
 # Function definitions
 
-def pathUtil(inv,mod1,mod2,k0,t):
-    k = np.zeros(t)
+def pathUtil(invest,mod1,mod2,k0,t):
+    k = np.zeros(t+1)
     k[0] = k0
     value = 0
-    for i in range(t-1):
-        flow = mod1.flow(k[i],inv[i])
+    for i in range(t):
+        flow = mod1.flow(k[i],invest[i])
         value += flow*mod1.beta**i
-        k[i+1] = k[i]*(1-mod1.delta) + inv[i]
+        k[i+1] = k[i]*(1-mod1.delta) + invest[i]
     
-    value += (mod1.beta**t)*mod2.value_func(k[t-1])
+    value += (mod1.beta**t)*mod2.value_func(k[t])
     return(value)
             
 def future_change(mod1,mod2,k0,t,T,npoints = 100):
     
     fobj = lambda x: -1*pathUtil(x,mod1,mod2,k0,t)
-    inv = optimize.minimize(fobj,x0 = np.ones(t-1)*mod2.kss*mod2.delta, options = {'disp': True}).x
+    inv = optimize.minimize(fobj,x0 = np.ones(t)*mod1.kss*mod2.delta, options = {'disp': True}).x
     
     # Find path of capital and lambda
     k = np.zeros(T)
@@ -63,7 +63,7 @@ def future_change(mod1,mod2,k0,t,T,npoints = 100):
     k[0] = k0 
     for i in range(0,T-1):
     
-        if i < (t-1):
+        if i < t:
             k[i+1] = k[i]*(1-mod1.delta) + inv[i]
             lam[i] = mod1.findLambda(k[i],k[i+1])
         else:
@@ -76,7 +76,7 @@ def future_change(mod1,mod2,k0,t,T,npoints = 100):
     
     # Plot k,lambda path
     plt.plot(k,lam,'.k')
-    plt.plot(k[t-1],lam[t-1],'.r')
+    plt.plot(k[t],lam[t],'.r',label = 'Change takes effect')
     
     k_range = np.linspace(0.1*min(mod1.kss,mod2.kss),2*max(mod1.kss,mod2.kss),npoints)
     mods = [mod1,mod2]
@@ -87,7 +87,7 @@ def future_change(mod1,mod2,k0,t,T,npoints = 100):
         # Plot k0 locus
         plt.plot(k_range,mods[i].P*np.ones(npoints), linestyle = '--', color = colors[i],label = labels[i])
         # Plot lambda0 locus
-        plt.plot(k_range,[mods[i].lambda0locus(x) for x in k_range], color = colors[i])
+        plt.plot(k_range,[mods[i].lambda0locus(x) for x in k_range], linestyle = '--', color = colors[i])
         # Plot steady state
         plt.plot(mods[i].kss,mods[i].P,marker = '*', color = colors[i])
     
@@ -100,12 +100,13 @@ def future_change(mod1,mod2,k0,t,T,npoints = 100):
 
 #%%
 
-Q1 = Qmod(omega = 0.1, zeta = 0.1)
+Q1 = Qmod(tau = 0.4,omega = 1)
 Q1.solve()
-Q2 = Qmod(omega = 0.1, zeta = 0)
+Q2 = Qmod(tau = 0, omega = 1)
 Q2.solve()
-    
-t = 10
-T = 20
+
+t = 3
+T = 8
 k0 = Q1.kss
+
 sol = future_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
