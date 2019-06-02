@@ -25,7 +25,8 @@
 # ---
 
 # %% [markdown]
-# # Numerical Solution of the Abel/Hayashi "q" investment model
+
+# # Examples of using the Qmod class.
 #
 # ## [Mateo Velásquez-Giraldo](https://github.com/Mv77)
 
@@ -35,7 +36,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from Q_investment import Qmod
-
 # %% [markdown]
 # # Examples
 

@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri May 31 15:15:05 2019
-
 @author: Mateo
 """
 
