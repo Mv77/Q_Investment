@@ -25,11 +25,11 @@
 # ---
 
 # %% [markdown]
-# # Numerical Solution of the Abel/Hayashi "q" investment model
+# # Examples of structural change in the Abel-Hayashi "Q" investment model
 #
 # ## [Mateo Velásquez-Giraldo](https://github.com/Mv77)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Preamble
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,10 +37,19 @@ import matplotlib.pyplot as plt
 from scipy import optimize
 
 from Q_investment import Qmod
-# %% {"code_folding": [40, 45]}
+# %% [markdown]
+# I first define functions to compute and present optimal dynamics in face of structural changes.
+
+# %% {"code_folding": [0]}
 # Function definitions
 
-def pathUtil(invest,mod1,mod2,k0,t):
+def pathValue(invest,mod1,mod2,k0,t):
+    '''
+    Compute the value of taking investment decisions
+    [i(0),i(1),...,i(t-1)] starting at capital k0 and knowing
+    that the governing model will switch from mod1 to mod2 at
+    time t.
+    '''
     k = np.zeros(t+1)
     k[0] = k0
     value = 0
@@ -52,10 +61,11 @@ def pathUtil(invest,mod1,mod2,k0,t):
     value += (mod1.beta**t)*mod2.value_func(k[t])
     return(value)
             
-def future_change(mod1,mod2,k0,t,T,npoints = 100):
+def structural_change(mod1,mod2,k0,t,T,npoints = 100):
     
-    fobj = lambda x: -1*pathUtil(x,mod1,mod2,k0,t)
-    inv = optimize.minimize(fobj,x0 = np.ones(t)*mod1.kss*mod2.delta, options = {'disp': True}).x
+    if t > 0:
+        fobj = lambda x: -1*pathValue(x,mod1,mod2,k0,t)
+        inv = optimize.minimize(fobj,x0 = np.ones(t)*mod1.kss*mod2.delta, options = {'disp': True}).x
     
     # Find path of capital and lambda
     k = np.zeros(T)
@@ -98,15 +108,64 @@ def future_change(mod1,mod2,k0,t,T,npoints = 100):
     
     return((k,lam))
 
-#%%
+# %% [markdown]
+# ## Examples:
+#
+# ## 1. An unanticipated corporate tax-cut
 
-Q1 = Qmod(tau = 0.4,omega = 1)
+# %%
+Q1 = Qmod(tau = 0.2)
 Q1.solve()
-Q2 = Qmod(tau = 0, omega = 1)
+Q2 = Qmod(tau = 0.05)
 Q2.solve()
 
-t = 3
-T = 8
+t = 0
+T = 10
 k0 = Q1.kss
 
-sol = future_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
+
+# %% [markdown]
+# ## 2. An unanticipated ITC increase
+
+# %%
+Q1 = Qmod(zeta = 0)
+Q1.solve()
+Q2 = Qmod(zeta = 0.2)
+Q2.solve()
+
+t = 0
+T = 10
+k0 = Q1.kss
+
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
+
+# %% [markdown]
+# ## 3. A corporate tax cut announced at t=0 but taking effect at t=5
+
+# %%
+Q1 = Qmod(tau = 0.2)
+Q1.solve()
+Q2 = Qmod(tau = 0.05)
+Q2.solve()
+
+t = 5
+T = 10
+k0 = Q1.kss
+
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
+
+# %% [markdown]
+# ## 4. An ITC increase announced at t=0 but taking effect at t=5
+
+# %%
+Q1 = Qmod(zeta = 0)
+Q1.solve()
+Q2 = Qmod(zeta = 0.2)
+Q2.solve()
+
+t = 5
+T = 10
+k0 = Q1.kss
+
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
