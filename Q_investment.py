@@ -12,7 +12,7 @@ class Qmod:
     A class representing the Q investment model.
     """
     
-    def __init__(self,beta = 0.98,tau = 0.05,alpha = 0.33,omega = 0.2,zeta = 0,delta = 0.1):
+    def __init__(self,beta = 0.98,tau = 0.05,alpha = 0.33,omega = 1,zeta = 0,delta = 0.1):
         """
         Inputs:
         - Beta: utility discount factor.
@@ -40,27 +40,27 @@ class Qmod:
         #  Compute steady state capital
         self.kss = ((1-(1-self.delta)*self.beta)*self.P/((1-self.tau)*self.alpha))**(1/(self.alpha-1))
     
-    # Compute output
+    # Output
     def f(self,k):
         return(k**self.alpha)
         
-    # Compute profit:
+    # Profit:
     def pi(self,k):
         return((1-self.tau)*self.f(k))
     
-    # Compute expenditure:
+    # Expenditure:
     def expend(self,k,i):
         return((i+self.j(i,k))*self.P*self.beta)
     
-    # Compute flow utility
+    # Flow utility
     def flow(self,k,i):
         return(self.pi(k) - self.expend(k,i))
         
-    # Compute marginal productivity of capital
+    # Marginal productivity of capital
     def f_k(self,k):
         return(self.alpha*k**(self.alpha-1))
     
-    # Compute investment adjustment cost
+    # Investment adjustment cost
     def j(self,i,k):
         return(k/2*((i-self.delta*k)/k)**2*self.omega)
     
@@ -200,23 +200,6 @@ class Qmod:
         iota = self.iota(lam_1)
         jk = -(iota**2/2+iota*self.delta)*self.omega
         return(jk)
-        
-    def dLambda(self,k,lam):
-        
-        bdel = self.beta*(1-self.delta)
-        
-        # dLambda solves the following equation:
-        error = lambda x: ((1-bdel)*lam-(1-self.tau)*self.f_k(k) + self.jkl(lam+x)*self.beta*self.P)/bdel - x
-        sol = optimize.root_scalar(error, bracket = [-1,1])
-        
-        if sol.flag != 'converged':
-            return( np.float('nan') )
-        else:
-            return(sol.root)
-    
-    def dK(self,k,lam):
-        iota = (lam/self.P-1)/self.omega
-        return(iota*k)
     
     def plotEnvelopeCond(self,k, npoints = 10):
         
@@ -242,10 +225,8 @@ class Qmod:
         q1 = iota*self.omega + 1
         lam1 = q1*self.P 
         lam = (1-self.tau)*self.f_k(k0) - self.j_k(i,k0)*self.beta*self.P + self.beta*(1-self.delta)*lam1
-        
         return(lam)
         
-    
     def lambda0locus(self,k):
         
         if k > self.kss:
@@ -291,17 +272,16 @@ class Qmod:
         plt.legend()
         plt.show()
     
+    # Value function: maximum expected discounted utility given initial caputal
     def value_func(self,k,tol = 10**(-2)):
         
         if abs(k-self.kss) > tol:
             
             k1 = self.k1Func(k)
             i = k1 - k*(1-self.delta)
-            
             return(self.flow(k,i) + self.beta*self.value_func(k1,tol))
         
         else:
-            
             # If steady state is reached return present discounted value
             # of all future flows (which will be identical)
             return(self.flow(self.kss,self.kss*self.delta)/(1-self.beta))

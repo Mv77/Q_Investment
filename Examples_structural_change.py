@@ -61,32 +61,32 @@ def pathValue(invest,mod1,mod2,k0,t):
     value += (mod1.beta**t)*mod2.value_func(k[t])
     return(value)
             
-def structural_change(mod1,mod2,k0,t,T,npoints = 100):
+def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 100):
     
-    if t > 0:
-        fobj = lambda x: -1*pathValue(x,mod1,mod2,k0,t)
+    if t_change > 0:
+        fobj = lambda x: -1*pathValue(x,mod1,mod2,k0,t_change)
         inv = optimize.minimize(fobj,x0 = np.ones(t)*mod1.kss*mod2.delta, options = {'disp': True}).x
     
     # Find path of capital and lambda
-    k = np.zeros(T)
-    lam = np.zeros(T)
+    k = np.zeros(T_sim)
+    lam = np.zeros(T_sim)
     k[0] = k0 
-    for i in range(0,T-1):
+    for i in range(0,T_sim-1):
     
-        if i < t:
+        if i < t_change:
             k[i+1] = k[i]*(1-mod1.delta) + inv[i]
             lam[i] = mod1.findLambda(k[i],k[i+1])
         else:
             k[i+1] = mod2.k1Func(k[i])
             lam[i] = mod2.findLambda(k[i],k[i+1])
     
-    lam[T-1] = mod2.findLambda(k[T-1],mod2.k1Func(k[T-1]))
+    lam[T_sim-1] = mod2.findLambda(k[T_sim-1],mod2.k1Func(k[T_sim-1]))
     
     plt.figure()
     
     # Plot k,lambda path
     plt.plot(k,lam,'.k')
-    plt.plot(k[t],lam[t],'.r',label = 'Change takes effect')
+    plt.plot(k[t_change],lam[t_change],'.r',label = 'Change takes effect')
     
     k_range = np.linspace(0.1*min(mod1.kss,mod2.kss),2*max(mod1.kss,mod2.kss),npoints)
     mods = [mod1,mod2]
@@ -114,7 +114,7 @@ def structural_change(mod1,mod2,k0,t,T,npoints = 100):
 # ## 1. An unanticipated corporate tax-cut
 
 # %%
-Q1 = Qmod(tau = 0.2)
+Q1 = Qmod(tau = 0.4)
 Q1.solve()
 Q2 = Qmod(tau = 0.05)
 Q2.solve()
@@ -123,13 +123,13 @@ t = 0
 T = 10
 k0 = Q1.kss
 
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T,npoints = 200)
 # %% [markdown]
 # ## 2. A corporate tax cut announced at t=0 but taking effect at t=5
 
 # %%
 t = 5
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T,npoints = 200)
 # %% [markdown]
 # ## 3. An unanticipated ITC increase
 
@@ -143,11 +143,11 @@ t = 0
 T = 10
 k0 = Q1.kss
 
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T,npoints = 200)
 
 # %% [markdown]
 # ## 4. An ITC increase announced at t=0 but taking effect at t=5
 
 # %%
 t = 5
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T,npoints = 200)
