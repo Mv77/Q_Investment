@@ -124,9 +124,14 @@ T = 10
 k0 = Q1.kss
 
 sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
-
 # %% [markdown]
-# ## 2. An unanticipated ITC increase
+# ## 2. A corporate tax cut announced at t=0 but taking effect at t=5
+
+# %%
+t = 5
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
+# %% [markdown]
+# ## 3. An unanticipated ITC increase
 
 # %%
 Q1 = Qmod(zeta = 0)
@@ -141,31 +146,8 @@ k0 = Q1.kss
 sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
 
 # %% [markdown]
-# ## 3. A corporate tax cut announced at t=0 but taking effect at t=5
-
-# %%
-Q1 = Qmod(tau = 0.2)
-Q1.solve()
-Q2 = Qmod(tau = 0.05)
-Q2.solve()
-
-t = 5
-T = 10
-k0 = Q1.kss
-
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
-
-# %% [markdown]
 # ## 4. An ITC increase announced at t=0 but taking effect at t=5
 
 # %%
-Q1 = Qmod(zeta = 0)
-Q1.solve()
-Q2 = Qmod(zeta = 0.2)
-Q2.solve()
-
 t = 5
-T = 10
-k0 = Q1.kss
-
 sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t = t,T=T,npoints = 200)
