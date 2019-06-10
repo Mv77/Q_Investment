@@ -1,5 +1,6 @@
 """
-@author: Mateo
+@author: Mateo Velásquez-Giraldo
+https://github.com/Mv77
 """
 
 import numpy as np
@@ -12,7 +13,7 @@ class Qmod:
     A class representing the Q investment model.
     """
     
-    def __init__(self,beta = 0.98,tau = 0.05,alpha = 0.33,omega = 1,zeta = 0,delta = 0.1):
+    def __init__(self,beta = 0.98,tau = 0.05,alpha = 0.33,omega = 1,zeta = 0,delta = 0.1, psi = 1):
         """
         Inputs:
         - Beta: utility discount factor.
@@ -21,6 +22,7 @@ class Qmod:
         - Omega: adjustment cost parameter.
         - Zeta: investment tax credit.
         - Delta: capital depreciation rate.
+        - Psi: total productivity augmenting factor.
         """
         
         # Assign parameter values
@@ -30,6 +32,7 @@ class Qmod:
         self.omega = omega
         self.zeta = zeta
         self.delta = delta
+        self.psi = psi
         
         # Set the price of capital after ITC
         self.P = (1-self.zeta)
@@ -38,11 +41,11 @@ class Qmod:
         self.k1Func = None
         
         #  Compute steady state capital
-        self.kss = ((1-(1-self.delta)*self.beta)*self.P/((1-self.tau)*self.alpha))**(1/(self.alpha-1))
+        self.kss = ((1-(1-self.delta)*self.beta)*self.P/((1-self.tau)*self.alpha*self.psi))**(1/(self.alpha-1))
     
     # Output
     def f(self,k):
-        return(k**self.alpha)
+        return(self.psi*k**self.alpha)
         
     # Profit:
     def pi(self,k):
@@ -58,7 +61,7 @@ class Qmod:
         
     # Marginal productivity of capital
     def f_k(self,k):
-        return(self.alpha*k**(self.alpha-1))
+        return(self.psi*self.alpha*k**(self.alpha-1))
     
     # Investment adjustment cost
     def j(self,i,k):
