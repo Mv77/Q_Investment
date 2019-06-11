@@ -11,11 +11,15 @@ from scipy import optimize
 class Qmod:
     """
     A class representing the Q investment model.
+    The class follows the model's version discussed in Christopher D. Carroll's
+    lecture notes:
+    http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Investment/qModel/
     """
     
-    def __init__(self,beta = 0.98,tau = 0.05,alpha = 0.33,omega = 1,zeta = 0,delta = 0.1, psi = 1):
+    def __init__(self,beta = 0.98,tau = 0.05,alpha = 0.33,omega = 1,zeta = 0,
+                 delta = 0.1, psi = 1):
         """
-        Inputs:
+        Parameters:
         - Beta: utility discount factor.
         - Tau: corporate tax rate.
         - Alpha: output elasticity with respect to capital.
@@ -41,15 +45,24 @@ class Qmod:
         self.k1Func = None
         
         #  Compute steady state capital
-        self.kss = ((1-(1-self.delta)*self.beta)*self.P/((1-self.tau)*self.alpha*self.psi))**(1/(self.alpha-1))
+        self.kss = ((1-(1-self.delta)*self.beta)*self.P/((1-self.tau)*
+                     self.alpha*self.psi))**(1/(self.alpha-1))
     
     # Output
     def f(self,k):
         return(self.psi*k**self.alpha)
-        
-    # Profit:
+    
+    # Marginal productivity of capital
+    def f_k(self,k):
+        return(self.psi*self.alpha*k**(self.alpha-1))
+    
+    # Revenue:
     def pi(self,k):
         return((1-self.tau)*self.f(k))
+    
+    # Investment adjustment cost
+    def j(self,i,k):
+        return(k/2*((i-self.delta*k)/k)**2*self.omega)
     
     # Expenditure:
     def expend(self,k,i):
@@ -59,14 +72,27 @@ class Qmod:
     def flow(self,k,i):
         return(self.pi(k) - self.expend(k,i))
         
-    # Marginal productivity of capital
-    def f_k(self,k):
-        return(self.psi*self.alpha*k**(self.alpha-1))
-    
-    # Investment adjustment cost
-    def j(self,i,k):
-        return(k/2*((i-self.delta*k)/k)**2*self.omega)
-    
+    # Value function: maximum expected discounted utility given initial caputal
+    def value_func(self,k,tol = 10**(-3)):
+        """
+        Parameters:
+            - k  : (current) capital.
+            - tol: absolute distance to steady state capital at which the model
+                   will be considered to have reached its steady state.
+        """
+        
+        if abs(k-self.kss) > tol:
+            # If steady state has not been reached, find the optimal capital
+            # for the next period and continue computing the value recursively.
+            k1 = self.k1Func(k)
+            i = k1 - k*(1-self.delta)
+            return(self.flow(k,i) + self.beta*self.value_func(k1,tol))
+        
+        else:
+            # If steady state is reached return present discounted value
+            # of all future flows (which will be identical)
+            return(self.flow(self.kss,self.kss*self.delta)/(1-self.beta))
+        
     # Derivative of adjustment cost with respect to investment
     def j_i(self,i,k):
         iota = i/k - self.delta
@@ -78,7 +104,8 @@ class Qmod:
         return(-(iota**2/2+iota*self.delta)*self.omega)
     
     # Error in the euler Equation implied by a k_0, k_1, k_2 triad.
-    # This can be solved to obtain the adequate triads.
+    # This can be solved to obtain the triads that are consistent with the
+    # equation.
     def eulerError(self,k0,k1,k2):
         
         # Compute implied investments at t=0 and t=1.
@@ -87,17 +114,20 @@ class Qmod:
         
         # Compute implied error in the Euler equation
         error = (1+self.j_i(i0,k0))*self.P -\
-        ((1-self.tau)*self.f_k(k1) +\
-         ((1-self.delta) + (1-self.delta)*self.j_i(i1,k1) - self.j_k(i1,k1))*self.P*self.beta)
+                ((1-self.tau)*self.f_k(k1) +\
+                 ((1-self.delta) +\
+                  (1-self.delta)*self.j_i(i1,k1) - self.j_k(i1,k1)
+                 )*self.P*self.beta
+                )
         
         return(error)
     
-    # Find the k_2 implied by the euler equation for an initial k_0,
-    # k_1.
+    # Find the k_2 implied by the euler equation for an initial k_0, k_1.
     def k2(self,k0,k1):
         
         # Find the k2 that is consistent with the Euler equation
-        sol = optimize.root_scalar(lambda x: self.eulerError(k0,k1,x), x0=k0, x1=self.kss)
+        sol = optimize.root_scalar(lambda x: self.eulerError(k0,k1,x),
+                                   x0=k0, x1=self.kss)
         
         # Return exception if no compatible capital is found
         if sol.flag != "converged":
@@ -108,7 +138,11 @@ class Qmod:
     # Find the capital trajectory implied by the euler equation for
     # an initial k_0, k_1.
     def shoot(self,k0,k1,t):
-        
+        """
+        Parameters:
+            - k0, k1: initial values for capital.
+            - t     : number of periods to be simulated.
+        """
         # Initialize k
         k = np.zeros(t)
         k[0] = k0
@@ -134,7 +168,15 @@ class Qmod:
     
     # Shooting algorithm to find k_1 given k_0.
     def find_k1(self,k0,T=30,tol = 10**(-3),maxiter = 200):
-    
+        """
+        Parameters:
+            - k0     : initial value of capital.
+            - T      : number of time periods to be simulated for every
+                       candidate solution.
+            - tol    : distance between k(T) and steady state capital at which
+                       a solution is satisfactory
+            - maxiter: maximum number of iterations.
+        """
         # Initialize interval over which a solution is searched.
         top = max(self.kss,k0)
         bot = min(self.kss,k0)
@@ -172,7 +214,13 @@ class Qmod:
     # k_0 over a grid of points and then finding an interpolating
     # function
     def solve(self,k_min=10**(-4), n_points = 50):
-        
+        """
+        Parameters:
+            - k_min   : minimum value of capital at which the policy rule will
+                        be solved for.
+            - n_points: number of points at which to numerically solve for the
+                        policy rule.
+        """
         # Create k_0 grid
         k_max = 4*self.kss
         k0 = np.linspace(k_min,k_max,n_points)
@@ -187,31 +235,43 @@ class Qmod:
         # function
         self.k1Func = interpolate.interp1d(k0,k1)
     
-    # Simulation of capital dynamics from a starting k_0
+    # Simulation of capital dynamics from a starting k_0 for a number of
+    # periods t
     def simulate(self,k0,t):
         k = np.zeros(t)
         k[0]=k0
         for i in range(1,t):
             k[i] = self.k1Func(k[i-1])
         return(k)
-        
+    
+    # Net investment ratio at t, as a function of marginal value of capital at
+    # t+1.
     def iota(self,lam_1):
         iota = ( lam_1/self.P - 1)/self.omega
         return(iota)
     
+    # Detivative of adjustment costs as a function of lambda(t+1), assuming
+    # optimal investment.
     def jkl(self,lam_1):
         iota = self.iota(lam_1)
         jk = -(iota**2/2+iota*self.delta)*self.omega
         return(jk)
     
+    # Plot the marginal value of capital at t implied by the envelope condition,
+    # as a function of the marginal value at t+1, at a given level of capital.
     def plotEnvelopeCond(self,k, npoints = 10):
         
+        # Create grid for lambda(t+1)
         lam_1 = np.linspace(0,2,npoints)
+        
+        # Compute each component of the envelope condition
         prod = np.ones(npoints)*(1-self.tau)*self.f_k(k)
         iota = (lam_1/self.P - 1)/self.omega
         jk = - (iota**2/2+iota*self.delta)*self.omega
         inv_gain = -jk*self.beta*self.P
         fut_val = (1-self.delta)*self.beta*lam_1
+        
+        # Plot lambda(t) as a function of lambda(t+1)
         plt.plot(lam_1,prod+inv_gain+fut_val, label = "Env. Condition value")
         plt.plot(lam_1,lam_1, linestyle = '--', color = 'k', label = "45° line")
         
@@ -219,19 +279,13 @@ class Qmod:
         plt.title('$\\lambda (t)$ vs $\lambda (t+1)$ at $k =$ %1.2f' %(k))
         plt.xlabel('$\\lambda (t+1)$')
         plt.ylabel('$\\lambda (t)$')
-        
-    # Compute lambda_t using k0,k1 and the envelope condition
-    def findLambda(self,k0,k1):
-        
-        i = k1 - (1-self.delta)*k0
-        iota = i/k0 - self.delta
-        q1 = iota*self.omega + 1
-        lam1 = q1*self.P 
-        lam = (1-self.tau)*self.f_k(k0) - self.j_k(i,k0)*self.beta*self.P + self.beta*(1-self.delta)*lam1
-        return(lam)
-        
+    
+    # Solve for the value of lambda(t) that implies lambda(t)=lambda(t+1) at
+    # a given level of capital.
     def lambda0locus(self,k):
         
+        # Set the initial solution guess acording to the level of capital. This
+        # is important given that the equation to be solved is quadratic.
         if k > self.kss:
             x1 = 0.5*self.P
         else:
@@ -240,26 +294,60 @@ class Qmod:
         bdel = self.beta*(1-self.delta)
         
         # Lambda solves the following equation:
-        error = lambda x: (1-bdel)*x - (1-self.tau)*self.f_k(k) + self.jkl(x)*self.beta*self.P
+        error = lambda x: (1-bdel)*x - (1-self.tau)*self.f_k(k) +\
+                          self.jkl(x)*self.beta*self.P
         
+        # Search for a solution. The locus does not exist at all k.
         sol = optimize.root_scalar(error, x0 = self.P, x1 = x1)
         if sol.flag != 'converged':
             return( np.float('nan') )
         else:
             return(sol.root)
+    
+    # Compute marginal value of capital at t using k0,k1 and the envelope
+    # condition
+    def findLambda(self,k0,k1):
         
-    def phase_diagram(self, k_min = 0.1, k_max = 2,npoints = 200, stableArm = False):
+        # Implied investment at t
+        i = k1 - (1-self.delta)*k0
+        iota = i/k0 - self.delta
         
+        q1 = iota*self.omega + 1
+        lam1 = q1*self.P 
+        
+        # Envelope equation
+        lam = (1-self.tau)*self.f_k(k0) - self.j_k(i,k0)*self.beta*self.P +\
+              self.beta*(1-self.delta)*lam1
+              
+        return(lam)
+    
+    # Plot phase diagram of the model
+    def phase_diagram(self, k_min = 0.1, k_max = 2,npoints = 200,
+                      stableArm = False):
+        """
+        Parameters:
+            - [k_min,k_max]: minimum and maximum levels of capital for the
+                             diagram, expressed as a fraction of the steady
+                             state capital.
+            - npoints      : number of points in the grid of capital for which
+                             the loci are plotted.
+            - stableArm    : enables/disables plotting of the model's stable
+                             arm.
+        """
+        
+        # Create capital grid.
         k = np.linspace(k_min*self.kss,k_max*self.kss,npoints)
         
         plt.figure()
         # Plot k0 locus
         plt.plot(k,self.P*np.ones(npoints),label = '$\\dot{k}=0$ locus')
         # Plot lambda0 locus
-        plt.plot(k,[self.lambda0locus(x) for x in k],label = '$\\dot{\\lambda}=0$ locus')
+        plt.plot(k,[self.lambda0locus(x) for x in k],
+                 label = '$\\dot{\\lambda}=0$ locus')
         # Plot steady state
         plt.plot(self.kss,self.P,'*r', label = 'Steady state')
         
+        # PLot stable arm
         if stableArm:
             
             if self.k1Func is None:
@@ -273,18 +361,5 @@ class Qmod:
         plt.xlabel('K')
         plt.ylabel('Lambda')
         plt.legend()
+        
         plt.show()
-    
-    # Value function: maximum expected discounted utility given initial caputal
-    def value_func(self,k,tol = 10**(-2)):
-        
-        if abs(k-self.kss) > tol:
-            
-            k1 = self.k1Func(k)
-            i = k1 - k*(1-self.delta)
-            return(self.flow(k,i) + self.beta*self.value_func(k1,tol))
-        
-        else:
-            # If steady state is reached return present discounted value
-            # of all future flows (which will be identical)
-            return(self.flow(self.kss,self.kss*self.delta)/(1-self.beta))

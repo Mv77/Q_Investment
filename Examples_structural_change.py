@@ -38,56 +38,95 @@ from scipy import optimize
 
 from Q_investment import Qmod
 # %% [markdown]
-# I first define functions to compute and present optimal dynamics in face of structural changes.
-
+# I first define functions to compute and present optimal dynamics in face of
+# structural changes.
 # %% {"code_folding": [0]}
 # Function definitions
 
 def pathValue(invest,mod1,mod2,k0,t):
     '''
-    Compute the value of taking investment decisions
-    [i(0),i(1),...,i(t-1)] starting at capital k0 and knowing
-    that the governing model will switch from mod1 to mod2 at
-    time t.
+    Computes the value of taking investment decisions [i(0),i(1),...,i(t-1)]
+    starting at capital k0 and knowing that the prevailing model will switch
+    from mod1 to mod2 at time t.
+    
+    Parameters:
+        - invest: vector/list with investment values for periods 0 to t-1
+        - mod1  : Qmod object representing the parameter values prevailing from
+                  time 0 to t-1.
+        - mod2  : Qmod object representing the parameter values prevailing from
+                  time t onwards.
+        - k0    : capital at time 0.
+        - t     : time of the structural change.
     '''
+    
+    # Initialize capital and value (utility)
     k = np.zeros(t+1)
     k[0] = k0
     value = 0
+    
+    # Compute capital and utility flows until time t-1
     for i in range(t):
         flow = mod1.flow(k[i],invest[i])
         value += flow*mod1.beta**i
         k[i+1] = k[i]*(1-mod1.delta) + invest[i]
     
+    # From time t onwards, model 2 prevails and its value function can be used.
     value += (mod1.beta**t)*mod2.value_func(k[t])
+    
     return(value)
             
 def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 100):
+    """
+    Computes (optimal) capital and lambda dynamics in face of a structural
+    change in the Q investment model.
     
+    Parameters:
+        - mod1    : Qmod object representing the parameter values prevailing
+                    from time 0 to t_change-1.
+        - mod2    : Qmod object representing the parameter values prevailing
+                    from time t_change onwards.
+        - k0      : initial value for capital.
+        - t_change: time period at which the structural change takes place. It
+                    is assumed that the change is announced at period 0.
+        - T_sim   : final time period of the simulation.
+        - npoints : number of points in the capital grid to be used for phase
+                    diagram plots.
+    """
+    
+    # If the change is announced with anticipation, the optimal path of
+    # investment from 0 to t_change-1 is computed, as it does not correspond to
+    # the usual policy rule.
     if t_change > 0:
         fobj = lambda x: -1*pathValue(x,mod1,mod2,k0,t_change)
-        inv = optimize.minimize(fobj,x0 = np.ones(t)*mod1.kss*mod2.delta, options = {'disp': True}).x
+        inv = optimize.minimize(fobj,x0 = np.ones(t)*mod1.kss*mod2.delta,
+                                options = {'disp': True}).x
     
-    # Find path of capital and lambda
+    # Find paths of capital and lambda
     k = np.zeros(T_sim)
     lam = np.zeros(T_sim)
     k[0] = k0 
     for i in range(0,T_sim-1):
     
         if i < t_change:
+            # Before the change, investment follows the optimal
+            # path computed above.
             k[i+1] = k[i]*(1-mod1.delta) + inv[i]
             lam[i] = mod1.findLambda(k[i],k[i+1])
         else:
+            # After the change, investment follows the post-change policy rule.
             k[i+1] = mod2.k1Func(k[i])
             lam[i] = mod2.findLambda(k[i],k[i+1])
     
     lam[T_sim-1] = mod2.findLambda(k[T_sim-1],mod2.k1Func(k[T_sim-1]))
     
+    # Create a figure with phase diagrams and dynamics.
     plt.figure()
     
-    # Plot k,lambda path
+    # Plot k,lambda path.
     plt.plot(k,lam,'.k')
     plt.plot(k[t_change],lam[t_change],'.r',label = 'Change takes effect')
     
+    # Plot the loci of the pre and post-change models.
     k_range = np.linspace(0.1*min(mod1.kss,mod2.kss),2*max(mod1.kss,mod2.kss),npoints)
     mods = [mod1,mod2]
     colors = ['r','b']
