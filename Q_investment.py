@@ -73,7 +73,7 @@ class Qmod:
         return(self.pi(k) - self.expend(k,i))
         
     # Value function: maximum expected discounted utility given initial caputal
-    def value_func(self,k,tol = 10**(-3)):
+    def value_func(self,k,tol = 10**(-2)):
         """
         Parameters:
             - k  : (current) capital.

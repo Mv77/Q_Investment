@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
@@ -27,7 +26,17 @@
 # %% [markdown]
 # # Examples of structural change in the Abel-Hayashi "Q" investment model
 #
-# ## [Mateo Velásquez-Giraldo](https://github.com/Mv77)
+# This notebook illustrates the dynamic behavior of capital and its marginal
+# value in the Abel-Hayashi model of investment when structural changes happen.
+#
+# I simulate the changes discussed in Prof. Christopher D. Carroll's graduate
+# Macroeconomics [lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Investment/qModel/):
+# productivity, corporate tax rate, and investment tax credit changes.
+#
+# For each change I display the behavior of the model in two different
+# contexts:
+# * The change takes place at $t=0$ without notice.
+# * The change is announced at $t=0$ but takes place at $t=5$.
 
 # %% {"code_folding": [0]}
 # Preamble
@@ -75,7 +84,7 @@ def pathValue(invest,mod1,mod2,k0,t):
     
     return(value)
             
-def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 100):
+def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
     """
     Computes (optimal) capital and lambda dynamics in face of a structural
     change in the Q investment model.
@@ -127,16 +136,19 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 100):
     plt.plot(k[t_change],lam[t_change],'.r',label = 'Change takes effect')
     
     # Plot the loci of the pre and post-change models.
-    k_range = np.linspace(0.1*min(mod1.kss,mod2.kss),2*max(mod1.kss,mod2.kss),npoints)
+    k_range = np.linspace(0.1*min(mod1.kss,mod2.kss),2*max(mod1.kss,mod2.kss),
+                          npoints)
     mods = [mod1,mod2]
     colors = ['r','b']
     labels = ['Pre-change','Post-change']
     for i in range(2):
 
         # Plot k0 locus
-        plt.plot(k_range,mods[i].P*np.ones(npoints), linestyle = '--', color = colors[i],label = labels[i])
+        plt.plot(k_range,mods[i].P*np.ones(npoints),
+                 linestyle = '--', color = colors[i],label = labels[i])
         # Plot lambda0 locus
-        plt.plot(k_range,[mods[i].lambda0locus(x) for x in k_range], linestyle = '--', color = colors[i])
+        plt.plot(k_range,[mods[i].lambda0locus(x) for x in k_range],
+                 linestyle = '--', color = colors[i])
         # Plot steady state
         plt.plot(mods[i].kss,mods[i].P,marker = '*', color = colors[i])
     
@@ -150,25 +162,31 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 100):
 # ## Examples:
 #
 # ## 1. An unanticipated increase in productivity
-# %%
+# %% {"code_folding": [0]}
+# Create and solve the pre and post-change models.
 Q1 = Qmod(psi = 1)
 Q1.solve()
 Q2 = Qmod(psi = 1.3)
 Q2.solve()
 
+# Change happens at t=0.
 t = 0
+# Simulate for 10 periods.
 T = 10
+# Start from the steady state of the first model.
 k0 = Q1.kss
 
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T,npoints = 200)
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
 # %% [markdown]
 # ## 2. An increase in productivity announced at t=0 but taking effect at t=5
-# %%
+# %% {"code_folding": [0]}
+# Repeat the calculation now assuming the change happens at t=5
 t = 5
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T,npoints = 200)
+
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
 # %% [markdown]
 # ## 3. An unanticipated corporate tax-cut
-# %%
+# %% {"code_folding": [0]}
 Q1 = Qmod(tau = 0.4)
 Q1.solve()
 Q2 = Qmod(tau = 0.05)
@@ -178,15 +196,15 @@ t = 0
 T = 10
 k0 = Q1.kss
 
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T,npoints = 200)
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
 # %% [markdown]
 # ## 4. A corporate tax cut announced at t=0 but taking effect at t=5
-# %%
+# %% {"code_folding": [0]}
 t = 5
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T,npoints = 200)
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
 # %% [markdown]
 # ## 5. An unanticipated ITC increase
-# %%
+# %% {"code_folding": [0]}
 Q1 = Qmod(zeta = 0)
 Q1.solve()
 Q2 = Qmod(zeta = 0.2)
@@ -196,9 +214,9 @@ t = 0
 T = 10
 k0 = Q1.kss
 
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T,npoints = 200)
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
 # %% [markdown]
 # ## 6. An ITC increase announced at t=0 but taking effect at t=5
-# %%
+# %% {"code_folding": [0]}
 t = 5
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T,npoints = 200)
+sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
