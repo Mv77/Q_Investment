@@ -25,22 +25,23 @@
 # ---
 
 # %% [markdown]
-
-# # Examples of using the Qmod class.
 #
-# ## [Mateo Velásquez-Giraldo](https://github.com/Mv77)
+# # Examples illustrating the use of the Qmod class.
+#
+# This notebook shows how to construct and use objects of the Qmod class, which is defined in Q_investment.py.
 
 # %% {"code_folding": []}
 # Preamble
 import numpy as np
 import matplotlib.pyplot as plt
-
 from Q_investment import Qmod
 # %% [markdown]
 # # Examples
 
 # %% [markdown]
 # ## 1. Model solution and policy rule.
+#
+# We first create and solve a model. To solve the model is to find its policy rule: a function specifying what is the optimal value for capital at $t+1$ given capital at $t$ (implicitly defining optimal investment).
 
 # %%
 # Create model object
@@ -56,32 +57,16 @@ plt.plot(k,[Qexample.k1Func(x) for x in k], label = "Optimal capital")
 plt.plot(k,k, linestyle = '--', color = 'k', label = "45° line")
 plt.plot(Qexample.kss,Qexample.kss,'*r', label = "Steady state")
 plt.title('Policy Rule')
-plt.xlabel('k(t)')
-plt.ylabel('k(t+1)')
+plt.xlabel('$k(t)$')
+plt.ylabel('$k(t+1)$')
 plt.legend()
 plt.show()
 # %% [markdown]
 # ## 2. Simulation of capital dynamics.
-
-# %%
-# Find capital dynamics from a given starting capital
-k0 = 2*Qexample.kss
-t = 50
-
-# Simulate capital trajectory
-k = Qexample.simulate(k0,t)
-
-# Plot
-plt.figure()
-plt.plot(k)
-plt.axhline(y = Qexample.kss,linestyle = '--',color = 'k', label = '$\\bar{k}$')
-plt.title('Capital')
-plt.xlabel('Time')
-plt.legend()
-plt.show()
-
-# %% [markdown]
-# ## 3. The impact of ajdustment costs
+#
+# The class can also compute the dynamic adjustment of capital from a given starting level.
+#
+# We can use this to see how adjustment costs affect the speed of adjustment.
 
 # %%
 # Create and solve two instances, one with high and one with low adjustment costs omega
@@ -103,11 +88,14 @@ plt.plot(k_low, label = 'Low $\\omega$')
 plt.plot(k_high, label = 'High $\\omega$')
 plt.axhline(y = Qhigh.kss,linestyle = '--',color = 'k', label = 'Steady state ${k}$')
 plt.title('Capital')
-plt.xlabel('Time')
+plt.xlabel('$t$')
+plt.ylabel('$k(t)$')
 plt.legend()
 plt.show()
 # %% [markdown]
-# ## 4. Phase diagram.
+# ## 3. Phase diagram.
+#
+# The class can plot a model's phase diagram. The model has to be solved if the stable arm is to be displayed.
 
 # %%
 # Create and solve model object
@@ -128,3 +116,8 @@ Qexample.plotEnvelopeCond(k=2)
 
 # %% [markdown]
 # Note that the envelope condition never crosses the $\lambda_t = \lambda_{t+1}$ line. Thus, there is no $\dot{\lambda}=0$ locus at $k=2$.
+#
+# However, zooming in we can see that the locus is well defined around the steady state level of capital.
+
+# %%
+Qexample.phase_diagram( k_min = 0.99,k_max = 1.01 , stableArm = True)
