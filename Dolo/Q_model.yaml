@@ -5,9 +5,9 @@ symbols:
   states: [k]
   controls: [i]
   values: [V]
-  parameters: [alpha, delta,omega]
+  parameters: [alpha, delta, omega]
   rewards: [pi]
-  exogenous: [R,tau]
+  exogenous: [R,tau,itc_1]
 
 
 definitions:
@@ -15,7 +15,7 @@ definitions:
   y_k: alpha*k**(alpha-1)
   beta: 1/R
   j: (k/2)*((i-delta*k)/k)**2*omega
-  xi: (i + j)*beta
+  xi: (i + j)*beta*(1-itc_1)
   iota: (i/k-delta)
   j_i: iota*omega
   j_k: -(iota**2/2+iota*delta)*omega
@@ -32,7 +32,7 @@ equations:
     - pi = (1-tau)*y - xi
 
   arbitrage:
-    - (1+j_i) = (1-tau)*y_k(1) + ((1-delta) + (1-delta)*j_i(1) - j_k(1))*beta
+    - (1+j_i)*(1-itc_1) = (1-tau)*y_k(1) + ((1-delta) + (1-delta)*j_i(1) - j_k(1))*beta*(1-itc_1(1))
 
 calibration:
 

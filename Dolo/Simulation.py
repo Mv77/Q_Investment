@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.1
+#       jupytext_version: 1.2.3
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -37,7 +37,7 @@ model.set_calibration(alpha = alpha, delta = delta, omega = omega)
 # Interest rate simulation
 
 # Create empty dataframe for exog. variables
-exog = pd.DataFrame(columns = ['R','tau'])
+exog = pd.DataFrame(columns = ['R','tau','itc_1'])
 
 # Generate an interest rate process
 exog.R = np.concatenate((np.repeat(1.03,50),
@@ -46,6 +46,8 @@ exog.R = np.concatenate((np.repeat(1.03,50),
 
 # Leave tau at 0
 exog.tau = 0
+# Leave itc at 0
+exog.itc_1 = 0
 
 # Simpulate the optimal response
 dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
@@ -72,14 +74,13 @@ for var in vars:
     ax2.tick_params(axis='y', labelcolor=color)
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    plt.pyplot.grid(axis='both')
     plt.pyplot.show()
 
 # %%
-# Interest rate simulation
+# Tax rate simulation
 
 # Create empty dataframe for exog. variables
-exog = pd.DataFrame(columns = ['R','tau'])
+exog = pd.DataFrame(columns = ['R','tau','itc_1'])
 
 # Generate a future tax cut dynamic
 exog.tau = np.concatenate((np.repeat(0.2,50),
@@ -87,6 +88,8 @@ exog.tau = np.concatenate((np.repeat(0.2,50),
 
 # Leave R at 1.02
 exog.R = 1.02
+# Leave itc at 0
+exog.itc_1 = 0
 
 # Simpulate the optimal response
 dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
@@ -114,3 +117,46 @@ for var in vars:
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
     plt.pyplot.show()
+
+# %%
+# ITC simulation
+
+# Create empty dataframe for exog. variables
+exog = pd.DataFrame(columns = ['R','tau','itc_1'])
+
+# Generate a future itc increase cut dynamic
+exog.itc_1 = np.concatenate((np.repeat(0,50),
+                           np.repeat(0.25,50)))
+
+# Leave R at 1.02
+exog.R = 1.02
+# Leave tau at 0
+exog.tau = 0
+
+# Simpulate the optimal response
+dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
+
+# Plot the results
+ex = 'itc_1'
+vars = ['k','i']
+
+for var in vars:
+    
+    fig, ax1 = plt.pyplot.subplots()
+
+    color = 'tab:red'
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel(ex, color=color)
+    ax1.plot(dr[ex], color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    color = 'tab:blue'
+    ax2.set_ylabel(var, color=color)  # we already handled the x-label with ax1
+    ax2.plot(dr[var], color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    plt.pyplot.show()
+
