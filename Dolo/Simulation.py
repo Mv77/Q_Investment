@@ -30,26 +30,28 @@ def plotQmodel(model, exog, returnDF = False):
     dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
     
     # Plot exogenous variables
-    fig, axes = plt.pyplot.subplots(1,3)
+    fig, axes = plt.pyplot.subplots(1,3, figsize = (10,3))
     axes = axes.flatten()
     ex = ['R','tau','itc_1']
     
     for i in range(len(ex)):
         ax = axes[i]
-        ax.plot(dr[ex[i]])
+        ax.plot(dr[ex[i]],'.')
         ax.set_xlabel('Time')
         ax.set_ylabel(ex[i])
-        
+    fig.tight_layout()
+    
     # Plot optimal response variables
-    fig, axes = plt.pyplot.subplots(2,2)
+    fig, axes = plt.pyplot.subplots(2,2, figsize = (10,6))
     axes = axes.flatten()
     opt = ['k','i','lambda_1','q_1']
     
     for i in range(len(opt)):
         ax = axes[i]
-        ax.plot(dr[opt[i]])
+        ax.plot(dr[opt[i]],'.')
         ax.set_xlabel('Time')
         ax.set_ylabel(opt[i])
+    fig.tight_layout()
     
     if returnDF:
         return(dr)
@@ -108,7 +110,7 @@ plotQmodel(model,exog)
 # Create empty dataframe for exog. variables
 exog = pd.DataFrame(columns = ['R','tau','itc_1'])
 
-# Generate a future itc increase cut dynamic
+# Generate a future itc increase dynamic
 exog.itc_1 = np.concatenate((np.repeat(0,50),
                            np.repeat(0.25,50)))
 
