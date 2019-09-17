@@ -19,6 +19,8 @@ definitions:
   iota: (i/k-delta)
   j_i: iota*omega
   j_k: -(iota**2/2+iota*delta)*omega
+  lambda_1: (1+j_i)*(1-itc_1)
+  q_1: lambda_1/(1-itc_1)
 
 equations:
 

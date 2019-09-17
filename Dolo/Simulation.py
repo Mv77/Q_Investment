@@ -23,6 +23,38 @@ import dolo.algos.perfect_foresight as pf
 import dolo.algos.value_iteration as vi
 import pandas as pd
 
+# Define a function to handle plots
+def plotQmodel(model, exog, returnDF = False):
+    
+    # Simpulate the optimal response
+    dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
+    
+    # Plot exogenous variables
+    fig, axes = plt.pyplot.subplots(1,3)
+    axes = axes.flatten()
+    ex = ['R','tau','itc_1']
+    
+    for i in range(len(ex)):
+        ax = axes[i]
+        ax.plot(dr[ex[i]])
+        ax.set_xlabel('Time')
+        ax.set_ylabel(ex[i])
+        
+    # Plot optimal response variables
+    fig, axes = plt.pyplot.subplots(2,2)
+    axes = axes.flatten()
+    opt = ['k','i','lambda_1','q_1']
+    
+    for i in range(len(opt)):
+        ax = axes[i]
+        ax.plot(dr[opt[i]])
+        ax.set_xlabel('Time')
+        ax.set_ylabel(opt[i])
+    
+    if returnDF:
+        return(dr)
+
+
 # %%
 # Load and calibrate the model model
 model = yaml_import("Q_model.yaml")
@@ -49,32 +81,8 @@ exog.tau = 0
 # Leave itc at 0
 exog.itc_1 = 0
 
-# Simpulate the optimal response
-dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
-
-# Plot the results
-ex = 'R'
-vars = ['k','i']
-
-for var in vars:
-    
-    fig, ax1 = plt.pyplot.subplots()
-
-    color = 'tab:red'
-    ax1.set_xlabel('Time')
-    ax1.set_ylabel(ex, color=color)
-    ax1.plot(dr[ex], color=color)
-    ax1.tick_params(axis='y', labelcolor=color)
-
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-    color = 'tab:blue'
-    ax2.set_ylabel(var, color=color)  # we already handled the x-label with ax1
-    ax2.plot(dr[var], color=color)
-    ax2.tick_params(axis='y', labelcolor=color)
-
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    plt.pyplot.show()
+# Solve for the optimal response and plot the results  
+plotQmodel(model,exog)
 
 # %%
 # Tax rate simulation
@@ -91,32 +99,8 @@ exog.R = 1.02
 # Leave itc at 0
 exog.itc_1 = 0
 
-# Simpulate the optimal response
-dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
-
-# Plot the results
-ex = 'tau'
-vars = ['k','i']
-
-for var in vars:
-    
-    fig, ax1 = plt.pyplot.subplots()
-
-    color = 'tab:red'
-    ax1.set_xlabel('Time')
-    ax1.set_ylabel(ex, color=color)
-    ax1.plot(dr[ex], color=color)
-    ax1.tick_params(axis='y', labelcolor=color)
-
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-    color = 'tab:blue'
-    ax2.set_ylabel(var, color=color)  # we already handled the x-label with ax1
-    ax2.plot(dr[var], color=color)
-    ax2.tick_params(axis='y', labelcolor=color)
-
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    plt.pyplot.show()
+# Solve for the optimal response and plot the results  
+plotQmodel(model,exog)
 
 # %%
 # ITC simulation
@@ -133,30 +117,6 @@ exog.R = 1.02
 # Leave tau at 0
 exog.tau = 0
 
-# Simpulate the optimal response
-dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
-
-# Plot the results
-ex = 'itc_1'
-vars = ['k','i']
-
-for var in vars:
-    
-    fig, ax1 = plt.pyplot.subplots()
-
-    color = 'tab:red'
-    ax1.set_xlabel('Time')
-    ax1.set_ylabel(ex, color=color)
-    ax1.plot(dr[ex], color=color)
-    ax1.tick_params(axis='y', labelcolor=color)
-
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-    color = 'tab:blue'
-    ax2.set_ylabel(var, color=color)  # we already handled the x-label with ax1
-    ax2.plot(dr[var], color=color)
-    ax2.tick_params(axis='y', labelcolor=color)
-
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    plt.pyplot.show()
+# Solve for the optimal response and plot the results  
+plotQmodel(model,exog)
 
