@@ -39,7 +39,9 @@ def plotQmodel(model, exog, returnDF = False):
         ax.plot(dr[ex[i]],'.')
         ax.set_xlabel('Time')
         ax.set_ylabel(ex[i])
-    fig.tight_layout()
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    fig.suptitle('Exogenous variables', fontsize=16)
     
     # Plot optimal response variables
     fig, axes = plt.pyplot.subplots(2,2, figsize = (10,6))
@@ -51,7 +53,9 @@ def plotQmodel(model, exog, returnDF = False):
         ax.plot(dr[opt[i]],'.')
         ax.set_xlabel('Time')
         ax.set_ylabel(opt[i])
-    fig.tight_layout()
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    fig.suptitle('Endogenous response', fontsize=16)
     
     if returnDF:
         return(dr)
@@ -74,9 +78,9 @@ model.set_calibration(alpha = alpha, delta = delta, omega = omega)
 exog = pd.DataFrame(columns = ['R','tau','itc_1'])
 
 # Generate an interest rate process
-exog.R = np.concatenate((np.repeat(1.03,50),
+exog.R = np.concatenate((np.repeat(1.03,20),
                     np.repeat(1.05,10),
-                    np.repeat(1.01,20)))
+                    np.repeat(1.01,10)))
 
 # Leave tau at 0
 exog.tau = 0
@@ -93,8 +97,8 @@ plotQmodel(model,exog)
 exog = pd.DataFrame(columns = ['R','tau','itc_1'])
 
 # Generate a future tax cut dynamic
-exog.tau = np.concatenate((np.repeat(0.2,50),
-                           np.repeat(0,50)))
+exog.tau = np.concatenate((np.repeat(0.2,20),
+                           np.repeat(0,20)))
 
 # Leave R at 1.02
 exog.R = 1.02
@@ -111,8 +115,8 @@ plotQmodel(model,exog)
 exog = pd.DataFrame(columns = ['R','tau','itc_1'])
 
 # Generate a future itc increase dynamic
-exog.itc_1 = np.concatenate((np.repeat(0,50),
-                           np.repeat(0.25,50)))
+exog.itc_1 = np.concatenate((np.repeat(0,20),
+                           np.repeat(0.25,20)))
 
 # Leave R at 1.02
 exog.R = 1.02
