@@ -36,13 +36,18 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from scipy import optimize
 
-from Q_investment import Qmod
-
 from dolo import *
 import dolo.algos.perfect_foresight as pf
 import dolo.algos.value_iteration as vi
 
 import pandas as pd
+
+# Since the Qmod class is in other folder we need to
+# change the path.
+import sys
+sys.path.append('../')
+from Qmod.Q_investment import Qmod
+
 # %% [markdown]
 # I first define functions to compute and present optimal dynamics in face of
 # structural changes in the Qmod implementation.
@@ -214,7 +219,7 @@ Qmodel.solve()
 
 ## Dolo
 
-QDolo = yaml_import("Dolo/Q_model.yaml")
+QDolo = yaml_import("../Dolo/Q_model.yaml")
 # We do not pass psi, tau, or zeta since they are handled not as parameters
 # but exogenous variables.
 QDolo.set_calibration(R = R, alpha = alpha, delta = delta, omega = omega)

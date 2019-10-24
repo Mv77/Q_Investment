@@ -6,22 +6,12 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.1'
-#       jupytext_version: 0.8.5
+#       format_version: '1.2'
+#       jupytext_version: 1.2.3
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
 #     name: python3
-#   language_info:
-#     codemirror_mode:
-#       name: ipython
-#       version: 3
-#     file_extension: .py
-#     mimetype: text/x-python
-#     name: python
-#     nbconvert_exporter: python
-#     pygments_lexer: ipython3
-#     version: 3.7.1
 # ---
 
 # %% [markdown]
@@ -34,7 +24,14 @@
 # Preamble
 import numpy as np
 import matplotlib.pyplot as plt
-from Q_investment import Qmod
+
+
+# Since the Qmod class is in other folder we need to
+# change the path.
+import sys
+sys.path.append('../')
+
+from Qmod.Q_investment import Qmod
 # %% [markdown]
 # # Examples
 

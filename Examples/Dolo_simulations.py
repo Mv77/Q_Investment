@@ -64,7 +64,7 @@ def plotQmodel(model, exog, returnDF = False):
 
 # %%
 # Load and calibrate the model model
-model = yaml_import("Q_model.yaml")
+model = yaml_import("../Dolo/Q_model.yaml")
 
 alpha = 0.33
 delta = 0.05
