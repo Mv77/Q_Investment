@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       jupytext_version: 1.2.3
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -53,7 +53,7 @@ def pathValue(invest,mod1,mod2,k0,t):
     Computes the value of taking investment decisions [i(0),i(1),...,i(t-1)]
     starting at capital k0 and knowing that the prevailing model will switch
     from mod1 to mod2 at time t.
-    
+
     Parameters:
         - invest: vector/list with investment values for periods 0 to t-1
         - mod1  : Qmod object representing the parameter values prevailing from
@@ -63,28 +63,28 @@ def pathValue(invest,mod1,mod2,k0,t):
         - k0    : capital at time 0.
         - t     : time of the structural change.
     '''
-    
+
     # Initialize capital and value (utility)
     k = np.zeros(t+1)
     k[0] = k0
     value = 0
-    
+
     # Compute capital and utility flows until time t-1
     for i in range(t):
         flow = mod1.flow(k[i],invest[i])
         value += flow*mod1.beta**i
         k[i+1] = k[i]*(1-mod1.delta) + invest[i]
-    
+
     # From time t onwards, model 2 prevails and its value function can be used.
     value += (mod1.beta**t)*mod2.value_func(k[t])
-    
+
     return(value)
-            
+
 def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
     """
     Computes (optimal) capital and lambda dynamics in face of a structural
     change in the Q investment model.
-    
+
     Parameters:
         - mod1    : Qmod object representing the parameter values prevailing
                     from time 0 to t_change-1.
@@ -97,7 +97,7 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
         - npoints : number of points in the capital grid to be used for phase
                     diagram plots.
     """
-    
+
     # If the change is announced with anticipation, the optimal path of
     # investment from 0 to t_change-1 is computed, as it does not correspond to
     # the usual policy rule.
@@ -106,13 +106,13 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
         inv = optimize.minimize(fobj,x0 = np.ones(t)*mod1.kss*mod2.delta,
                                 options = {'disp': True},
                                 tol = 1e-16).x
-    
+
     # Find paths of capital and lambda
     k = np.zeros(T_sim)
     lam = np.zeros(T_sim)
-    k[0] = k0 
+    k[0] = k0
     for i in range(0,T_sim-1):
-    
+
         if i < t_change:
             # Before the change, investment follows the optimal
             # path computed above.
@@ -122,16 +122,16 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
             # After the change, investment follows the post-change policy rule.
             k[i+1] = mod2.k1Func(k[i])
             lam[i] = mod2.findLambda(k[i],k[i+1])
-    
+
     lam[T_sim-1] = mod2.findLambda(k[T_sim-1],mod2.k1Func(k[T_sim-1]))
-    
+
     # Create a figure with phase diagrams and dynamics.
     plt.figure()
-    
+
     # Plot k,lambda path.
     plt.plot(k,lam,'.k')
     plt.plot(k[t_change],lam[t_change],'.r',label = 'Change takes effect')
-    
+
     # Plot the loci of the pre and post-change models.
     k_range = np.linspace(0.1*min(mod1.kss,mod2.kss),2*max(mod1.kss,mod2.kss),
                           npoints)
@@ -148,19 +148,19 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
                  linestyle = '--', color = colors[i])
         # Plot steady state
         plt.plot(mods[i].kss,mods[i].P,marker = '*', color = colors[i])
-    
+
     plt.title('Phase diagrams and model dynamics')
     plt.xlabel('K')
     plt.ylabel('Lambda')
     plt.legend()
-    
+
     return((k,lam))
 # %% [markdown]
 # I now define functions to handle parameter changes in the Dolo implementation
 
 # %% {"code_folding": [0]}
 def simul_change_dolo(model, k0,  exog0, exog1, t_change, T_sim):
-    
+
     # The first step is to create time series for the exogenous variables
     exog = np.array([exog1,]*(T_sim - t_change))
     if t_change > 0:
@@ -168,18 +168,18 @@ def simul_change_dolo(model, k0,  exog0, exog1, t_change, T_sim):
                                exog),
                               axis = 0)
     exog = pd.DataFrame(exog, columns = ['R','tau','itc_1','psi'])
-    
+
     # Simpulate the optimal response
     dr = pf.deterministic_solve(model = model,shocks = exog, T=T_sim,
                                 verbose=True, s1 = k0)
-    
+
     # Dolo uses the first period to report the steady state
     # so we ommit it.
     return(dr[1:])
 
 
 # %% [markdown]
-# Now I create a base model parametrization using both the Qmod class and the Dolo implementation. 
+# Now I create a base model parametrization using both the Qmod class and the Dolo implementation.
 
 # %%
 # Base parameters
@@ -288,7 +288,10 @@ plt.xlabel('$t$ : time')
 # %% [markdown]
 # ## 3. An unanticipated corporate tax-cut
 # %% {"code_folding": [0]}
+# Set the taxes of the 'high-tax' scenario
 tau_high = 0.4
+# Set time of the change
+t = 0
 
 # Qmod class
 
@@ -297,6 +300,8 @@ Q_high_tau = deepcopy(Qmodel)
 Q_high_tau.tau = tau_high
 Q_high_tau.solve()
 
+# Capital will start at it steady state in the
+# high-tax scenario
 k0 = Q_high_tau.kss
 
 sol = structural_change(mod1 = Q_high_tau, mod2 = Qmodel,
@@ -320,8 +325,10 @@ plt.xlabel('$t$ : time')
 # %% [markdown]
 # ## 4. A corporate tax cut announced at t=0 but taking effect at t=5
 # %% {"code_folding": [0]}
+# Modify the time of the change
 t = 5
 
+# Qmod class
 sol = structural_change(mod1 = Q_high_tau, mod2 = Qmodel,
                         k0 = k0, t_change = t,T_sim=T)
 
@@ -343,8 +350,12 @@ plt.xlabel('$t$ : time')
 # %% [markdown]
 # ## 5. An unanticipated ITC increase
 # %% {"code_folding": [0]}
+# Set time of the change
 t=0
+# Set investment tax credit in the high case
 itc_high = 0.2
+# Set initial value of capital
+k0 = Qmodel.kss
 
 # Qmod class
 
@@ -352,8 +363,6 @@ itc_high = 0.2
 Q_high_itc = deepcopy(Qmodel)
 Q_high_itc.zeta = itc_high
 Q_high_itc.solve()
-
-k0 = Qmodel.kss
 
 sol = structural_change(mod1 = Qmodel, mod2 = Q_high_itc,
                         k0 = k0, t_change = t,T_sim=T)
@@ -376,8 +385,10 @@ plt.xlabel('$t$ : time')
 # %% [markdown]
 # ## 6. An ITC increase announced at t=0 but taking effect at t=5
 # %% {"code_folding": [0]}
+# Modify time of the change
 t = 5
 
+# Qmod class
 sol = structural_change(mod1 = Qmodel, mod2 = Q_high_itc,
                         k0 = k0, t_change = t,T_sim=T)
 
