@@ -158,7 +158,7 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
 # %% [markdown]
 # I now define functions to handle parameter changes in the Dolo implementation
 
-# %%
+# %% {"code_folding": [0]}
 def simul_change_dolo(model, k0,  exog0, exog1, t_change, T_sim):
     
     # The first step is to create time series for the exogenous variables
@@ -167,44 +167,54 @@ def simul_change_dolo(model, k0,  exog0, exog1, t_change, T_sim):
         exog = np.concatenate((np.array([exog0,]*(t_change)),
                                exog),
                               axis = 0)
-    
     exog = pd.DataFrame(exog, columns = ['R','tau','itc_1','psi'])
     
     # Simpulate the optimal response
     dr = pf.deterministic_solve(model = model,shocks = exog, T=T_sim,
                                 verbose=True, s1 = k0)
     
+    # Dolo uses the first period to report the steady state
+    # so we ommit it.
     return(dr[1:])
 
 
-# %%
-# Create a base Q model with the Python class and Dolo using the
-# same parametrization.
+# %% [markdown]
+# Now I create a base model parametrization using both the Qmod class and the Dolo implementation. 
 
+# %%
 # Base parameters
 
-# Discount factor and interest factor
+# Discount factor and return factor
 beta = 0.98
 R = 1/beta
+
 # Tax rate
 tau = 0.05
+
 # Share of capital in production
 alpha = 0.33
+
 # Adjustment costs
 omega = 1
+
 # Investment tax credit
 zeta = 0
+
 # Depreciation rate
 delta = 0.1
+
 # Technological factor
 psi = 1
 
-# Qmod python class
+
+## Qmod python class
+
 Qmodel = Qmod(beta, tau, alpha, omega, zeta, delta, psi)
 Qmodel.solve()
-# Dolo
-QDolo = yaml_import("Dolo/Q_model.yaml")
 
+## Dolo
+
+QDolo = yaml_import("Dolo/Q_model.yaml")
 # We do not pass psi, tau, or zeta since they are handled not as parameters
 # but exogenous variables.
 QDolo.set_calibration(R = R, alpha = alpha, delta = delta, omega = omega)
@@ -214,15 +224,19 @@ QDolo.set_calibration(R = R, alpha = alpha, delta = delta, omega = omega)
 #
 # ## 1. An unanticipated increase in productivity
 # %% {"code_folding": [0]}
-t = 0
+# Total simulation time
 T = 20
+# Time the change occurs
+t = 0
+# Initial level of capital
 k0 = Qmodel.kss
 
+# Productivity in the "new" state
 psi_new = 1.3
 
-# Qmod class
+## Qmod class
 
-# Copy the initial model, set a higher psi and re-solve
+# Copy the initial model, set the higher psi and re-solve
 Q_high_psi = deepcopy(Qmodel)
 Q_high_psi.psi = psi_new
 Q_high_psi.solve()
@@ -230,7 +244,8 @@ Q_high_psi.solve()
 sol = structural_change(mod1 = Qmodel, mod2 = Q_high_psi,
                         k0 = k0, t_change = t,T_sim=T)
 
-# Dolo
+## Dolo
+
 soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
                             exog0 = [R,tau,zeta,psi],
                             exog1 = [R,tau,zeta,psi_new],
@@ -239,9 +254,12 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], label = 'Qmod')
-plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
+plt.title('Capital dynamics')
+plt.ylabel('$k_t$ : capital')
+plt.xlabel('$t$ : time')
 # %% [markdown]
 # ## 2. An increase in productivity announced at t=0 but taking effect at t=5
 # %% {"code_folding": []}
@@ -261,9 +279,12 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], label = 'Qmod')
-plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
+plt.title('Capital dynamics')
+plt.ylabel('$k_t$ : capital')
+plt.xlabel('$t$ : time')
 # %% [markdown]
 # ## 3. An unanticipated corporate tax-cut
 # %% {"code_folding": [0]}
@@ -290,9 +311,12 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], label = 'Qmod')
-plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
+plt.title('Capital dynamics')
+plt.ylabel('$k_t$ : capital')
+plt.xlabel('$t$ : time')
 # %% [markdown]
 # ## 4. A corporate tax cut announced at t=0 but taking effect at t=5
 # %% {"code_folding": [0]}
@@ -310,9 +334,12 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], label = 'Qmod')
-plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
+plt.title('Capital dynamics')
+plt.ylabel('$k_t$ : capital')
+plt.xlabel('$t$ : time')
 # %% [markdown]
 # ## 5. An unanticipated ITC increase
 # %% {"code_folding": [0]}
@@ -340,9 +367,12 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], label = 'Qmod')
-plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
+plt.title('Capital dynamics')
+plt.ylabel('$k_t$ : capital')
+plt.xlabel('$t$ : time')
 # %% [markdown]
 # ## 6. An ITC increase announced at t=0 but taking effect at t=5
 # %% {"code_folding": [0]}
@@ -360,6 +390,9 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], label = 'Qmod')
-plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
+plt.title('Capital dynamics')
+plt.ylabel('$k_t$ : capital')
+plt.xlabel('$t$ : time')
