@@ -5,22 +5,12 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.1'
-#       jupytext_version: 0.8.5
+#       format_version: '1.2'
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
 #     name: python3
-#   language_info:
-#     codemirror_mode:
-#       name: ipython
-#       version: 3
-#     file_extension: .py
-#     mimetype: text/x-python
-#     name: python
-#     nbconvert_exporter: python
-#     pygments_lexer: ipython3
-#     version: 3.7.1
 # ---
 
 # %% [markdown]
@@ -38,20 +28,26 @@
 # * The change takes place at $t=0$ without notice.
 # * The change is announced at $t=0$ but takes place at $t=5$.
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Preamble
 import numpy as np
 import matplotlib.pyplot as plt
 
+from copy import deepcopy
 from scipy import optimize
 
 from Q_investment import Qmod
+
+from dolo import *
+import dolo.algos.perfect_foresight as pf
+import dolo.algos.value_iteration as vi
+
+import pandas as pd
 # %% [markdown]
 # I first define functions to compute and present optimal dynamics in face of
-# structural changes.
+# structural changes in the Qmod implementation.
 # %% {"code_folding": [0]}
 # Function definitions
-
 def pathValue(invest,mod1,mod2,k0,t):
     '''
     Computes the value of taking investment decisions [i(0),i(1),...,i(t-1)]
@@ -108,7 +104,8 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
     if t_change > 0:
         fobj = lambda x: -1*pathValue(x,mod1,mod2,k0,t_change)
         inv = optimize.minimize(fobj,x0 = np.ones(t)*mod1.kss*mod2.delta,
-                                options = {'disp': True}).x
+                                options = {'disp': True},
+                                tol = 1e-16).x
     
     # Find paths of capital and lambda
     k = np.zeros(T_sim)
@@ -159,64 +156,210 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
     
     return((k,lam))
 # %% [markdown]
+# I now define functions to handle parameter changes in the Dolo implementation
+
+# %%
+def simul_change_dolo(model, k0,  exog0, exog1, t_change, T_sim):
+    
+    # The first step is to create time series for the exogenous variables
+    exog = np.array([exog1,]*(T_sim - t_change))
+    if t_change > 0:
+        exog = np.concatenate((np.array([exog0,]*(t_change)),
+                               exog),
+                              axis = 0)
+    
+    exog = pd.DataFrame(exog, columns = ['R','tau','itc_1','psi'])
+    
+    # Simpulate the optimal response
+    dr = pf.deterministic_solve(model = model,shocks = exog, T=T_sim,
+                                verbose=True, s1 = k0)
+    
+    return(dr[1:])
+
+
+# %%
+# Create a base Q model with the Python class and Dolo using the
+# same parametrization.
+
+# Base parameters
+
+# Discount factor and interest factor
+beta = 0.98
+R = 1/beta
+# Tax rate
+tau = 0.05
+# Share of capital in production
+alpha = 0.33
+# Adjustment costs
+omega = 1
+# Investment tax credit
+zeta = 0
+# Depreciation rate
+delta = 0.1
+# Technological factor
+psi = 1
+
+# Qmod python class
+Qmodel = Qmod(beta, tau, alpha, omega, zeta, delta, psi)
+Qmodel.solve()
+# Dolo
+QDolo = yaml_import("Dolo/Q_model.yaml")
+
+# We do not pass psi, tau, or zeta since they are handled not as parameters
+# but exogenous variables.
+QDolo.set_calibration(R = R, alpha = alpha, delta = delta, omega = omega)
+
+# %% [markdown]
 # ## Examples:
 #
 # ## 1. An unanticipated increase in productivity
 # %% {"code_folding": [0]}
-# Create and solve the pre and post-change models.
-Q1 = Qmod(psi = 1)
-Q1.solve()
-Q2 = Qmod(psi = 1.3)
-Q2.solve()
-
-# Change happens at t=0.
 t = 0
-# Simulate for 10 periods.
-T = 10
-# Start from the steady state of the first model.
-k0 = Q1.kss
+T = 20
+k0 = Qmodel.kss
 
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
+psi_new = 1.3
+
+# Qmod class
+
+# Copy the initial model, set a higher psi and re-solve
+Q_high_psi = deepcopy(Qmodel)
+Q_high_psi.psi = psi_new
+Q_high_psi.solve()
+
+sol = structural_change(mod1 = Qmodel, mod2 = Q_high_psi,
+                        k0 = k0, t_change = t,T_sim=T)
+
+# Dolo
+soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
+                            exog0 = [R,tau,zeta,psi],
+                            exog1 = [R,tau,zeta,psi_new],
+                            t_change = t, T_sim = T)
+
+# Plot the path of capital under both solutions
+time = range(T)
+plt.figure()
+plt.plot(time, sol[0], label = 'Qmod')
+plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.legend()
 # %% [markdown]
 # ## 2. An increase in productivity announced at t=0 but taking effect at t=5
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Repeat the calculation now assuming the change happens at t=5
 t = 5
 
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
+# Qmod class
+sol = structural_change(mod1 = Qmodel, mod2 = Q_high_psi,
+                        k0 = k0, t_change = t,T_sim=T)
+
+# Dolo
+soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
+                            exog0 = [R,tau,zeta,psi],
+                            exog1 = [R,tau,zeta,psi_new],
+                            t_change = t, T_sim = T)
+
+# Plot the path of capital under both solutions
+time = range(T)
+plt.figure()
+plt.plot(time, sol[0], label = 'Qmod')
+plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.legend()
 # %% [markdown]
 # ## 3. An unanticipated corporate tax-cut
 # %% {"code_folding": [0]}
-Q1 = Qmod(tau = 0.4)
-Q1.solve()
-Q2 = Qmod(tau = 0.05)
-Q2.solve()
+tau_high = 0.4
 
-t = 0
-T = 10
-k0 = Q1.kss
+# Qmod class
 
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
+# Copy the initial model, set a higher psi and re-solve
+Q_high_tau = deepcopy(Qmodel)
+Q_high_tau.tau = tau_high
+Q_high_tau.solve()
+
+k0 = Q_high_tau.kss
+
+sol = structural_change(mod1 = Q_high_tau, mod2 = Qmodel,
+                        k0 = k0, t_change = t,T_sim=T)
+
+# Dolo
+soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
+                            exog0 = [R,tau_high,zeta,psi],
+                            exog1 = [R,tau,zeta,psi],
+                            t_change = t, T_sim = T)
+
+# Plot the path of capital under both solutions
+time = range(T)
+plt.figure()
+plt.plot(time, sol[0], label = 'Qmod')
+plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.legend()
 # %% [markdown]
 # ## 4. A corporate tax cut announced at t=0 but taking effect at t=5
 # %% {"code_folding": [0]}
 t = 5
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
+
+sol = structural_change(mod1 = Q_high_tau, mod2 = Qmodel,
+                        k0 = k0, t_change = t,T_sim=T)
+
+# Dolo
+soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
+                            exog0 = [R,tau_high,zeta,psi],
+                            exog1 = [R,tau,zeta,psi],
+                            t_change = t, T_sim = T)
+
+# Plot the path of capital under both solutions
+time = range(T)
+plt.figure()
+plt.plot(time, sol[0], label = 'Qmod')
+plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.legend()
 # %% [markdown]
 # ## 5. An unanticipated ITC increase
 # %% {"code_folding": [0]}
-Q1 = Qmod(zeta = 0)
-Q1.solve()
-Q2 = Qmod(zeta = 0.2)
-Q2.solve()
+t=0
+itc_high = 0.2
 
-t = 0
-T = 10
-k0 = Q1.kss
+# Qmod class
 
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
+# Copy the initial model, set a higher psi and re-solve
+Q_high_itc = deepcopy(Qmodel)
+Q_high_itc.zeta = itc_high
+Q_high_itc.solve()
+
+k0 = Qmodel.kss
+
+sol = structural_change(mod1 = Qmodel, mod2 = Q_high_itc,
+                        k0 = k0, t_change = t,T_sim=T)
+
+# Dolo
+soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
+                            exog0 = [R,tau,zeta,psi],
+                            exog1 = [R,tau,itc_high,psi],
+                            t_change = t, T_sim = T)
+
+# Plot the path of capital under both solutions
+time = range(T)
+plt.figure()
+plt.plot(time, sol[0], label = 'Qmod')
+plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.legend()
 # %% [markdown]
 # ## 6. An ITC increase announced at t=0 but taking effect at t=5
 # %% {"code_folding": [0]}
 t = 5
-sol = structural_change(mod1 = Q1, mod2 = Q2, k0 = k0, t_change = t,T_sim=T)
+
+sol = structural_change(mod1 = Qmodel, mod2 = Q_high_itc,
+                        k0 = k0, t_change = t,T_sim=T)
+
+# Dolo
+soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
+                            exog0 = [R,tau,zeta,psi],
+                            exog1 = [R,tau,itc_high,psi],
+                            t_change = t+1, T_sim = T)
+
+# Plot the path of capital under both solutions
+time = range(T)
+plt.figure()
+plt.plot(time, sol[0], label = 'Qmod')
+plt.plot(time, soldolo['k'], label = 'Dolo')
+plt.legend()

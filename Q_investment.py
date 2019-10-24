@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 @author: Mateo Velásquez-Giraldo
 https://github.com/Mv77
@@ -38,15 +39,14 @@ class Qmod:
         self.delta = delta
         self.psi = psi
         
-        # Set the price of capital after ITC
-        self.P = (1-self.zeta)
+        # Initialize
+        self.P = None
         
         # Create empty consumption function
         self.k1Func = None
         
-        #  Compute steady state capital
-        self.kss = ((1-(1-self.delta)*self.beta)*self.P/((1-self.tau)*
-                     self.alpha*self.psi))**(1/(self.alpha-1))
+        #  Initialize steady state capital
+        self.kss = None
     
     # Output
     def f(self,k):
@@ -221,6 +221,14 @@ class Qmod:
             - n_points: number of points at which to numerically solve for the
                         policy rule.
         """
+        
+        # Set the price of capital after ITC
+        self.P = (1-self.zeta)
+        
+        # First find steady state capital (in case parameters were changed)
+        self.kss = ((1-(1-self.delta)*self.beta)*self.P/((1-self.tau)*
+                     self.alpha*self.psi))**(1/(self.alpha-1))
+        
         # Create k_0 grid
         k_max = 4*self.kss
         k0 = np.linspace(k_min,k_max,n_points)

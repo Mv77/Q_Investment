@@ -7,12 +7,12 @@ symbols:
   values: [V]
   parameters: [alpha, delta, omega]
   rewards: [pi]
-  exogenous: [R,tau,itc_1]
+  exogenous: [R,tau,itc_1,psi]
 
 
 definitions:
-  y: k**alpha
-  y_k: alpha*k**(alpha-1)
+  y: psi*k**alpha
+  y_k: psi*alpha*k**(alpha-1)
   beta: 1/R
   j: (k/2)*((i-delta*k)/k)**2*omega
   xi: (i + j)*beta*(1-itc_1)
@@ -49,6 +49,8 @@ calibration:
   pi: k**alpha - i
   V: pi
   R: 1.02
+  psi: 1
+  itc_1: 0
   tau: 0
   beta: 1/R
   j: 0

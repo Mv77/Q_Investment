@@ -30,9 +30,10 @@ def plotQmodel(model, exog, returnDF = False):
     dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
     
     # Plot exogenous variables
-    fig, axes = plt.pyplot.subplots(1,3, figsize = (10,3))
+    
+    ex = ['R','tau','itc_1','psi']
+    fig, axes = plt.pyplot.subplots(1,len(ex), figsize = (10,3))
     axes = axes.flatten()
-    ex = ['R','tau','itc_1']
     
     for i in range(len(ex)):
         ax = axes[i]
@@ -75,7 +76,7 @@ model.set_calibration(alpha = alpha, delta = delta, omega = omega)
 # Interest rate simulation
 
 # Create empty dataframe for exog. variables
-exog = pd.DataFrame(columns = ['R','tau','itc_1'])
+exog = pd.DataFrame(columns = ['R','tau','itc_1','psi'])
 
 # Generate an interest rate process
 exog.R = np.concatenate((np.repeat(1.03,20),
@@ -86,6 +87,8 @@ exog.R = np.concatenate((np.repeat(1.03,20),
 exog.tau = 0
 # Leave itc at 0
 exog.itc_1 = 0
+# Leave psi at 1
+exog.psi = 1
 
 # Solve for the optimal response and plot the results  
 plotQmodel(model,exog)
@@ -94,7 +97,7 @@ plotQmodel(model,exog)
 # Tax rate simulation
 
 # Create empty dataframe for exog. variables
-exog = pd.DataFrame(columns = ['R','tau','itc_1'])
+exog = pd.DataFrame(columns = ['R','tau','itc_1','psi'])
 
 # Generate a future tax cut dynamic
 exog.tau = np.concatenate((np.repeat(0.2,20),
@@ -104,6 +107,8 @@ exog.tau = np.concatenate((np.repeat(0.2,20),
 exog.R = 1.02
 # Leave itc at 0
 exog.itc_1 = 0
+# Leave psi at 0
+exog.psi = 1
 
 # Solve for the optimal response and plot the results  
 plotQmodel(model,exog)
@@ -112,7 +117,7 @@ plotQmodel(model,exog)
 # ITC simulation
 
 # Create empty dataframe for exog. variables
-exog = pd.DataFrame(columns = ['R','tau','itc_1'])
+exog = pd.DataFrame(columns = ['R','tau','itc_1','psi'])
 
 # Generate a future itc increase dynamic
 exog.itc_1 = np.concatenate((np.repeat(0,20),
@@ -122,6 +127,8 @@ exog.itc_1 = np.concatenate((np.repeat(0,20),
 exog.R = 1.02
 # Leave tau at 0
 exog.tau = 0
+# Leave psi at 1
+exog.psi = 1
 
 # Solve for the optimal response and plot the results  
 plotQmodel(model,exog)
