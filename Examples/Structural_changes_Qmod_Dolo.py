@@ -159,7 +159,7 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
     plt.ylabel('Lambda')
     plt.legend()
 
-    return((k,lam))
+    return({'k':k, 'lambda':lam})
 # %% [markdown]
 # I now define functions to handle parameter changes in the Dolo implementation
 
@@ -259,7 +259,7 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, sol['k'], 'x', label = 'Qmod', alpha = 0.8)
 plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
 plt.title('Capital dynamics')
@@ -284,7 +284,7 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, sol['k'], 'x', label = 'Qmod', alpha = 0.8)
 plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
 plt.title('Capital dynamics')
@@ -321,7 +321,7 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, sol['k'], 'x', label = 'Qmod', alpha = 0.8)
 plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
 plt.title('Capital dynamics')
@@ -346,7 +346,7 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, sol['k'], 'x', label = 'Qmod', alpha = 0.8)
 plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
 plt.title('Capital dynamics')
@@ -381,7 +381,7 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, sol['k'], 'x', label = 'Qmod', alpha = 0.8)
 plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
 plt.title('Capital dynamics')
@@ -406,7 +406,7 @@ soldolo = simul_change_dolo(model = QDolo, k0 = np.array([k0]),
 # Plot the path of capital under both solutions
 time = range(T)
 plt.figure()
-plt.plot(time, sol[0], 'x', label = 'Qmod', alpha = 0.8)
+plt.plot(time, sol['k'], 'x', label = 'Qmod', alpha = 0.8)
 plt.plot(time, soldolo['k'], '+', label = 'Dolo', alpha = 0.8)
 plt.legend()
 plt.title('Capital dynamics')
