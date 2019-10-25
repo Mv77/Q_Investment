@@ -2,12 +2,20 @@
 
 This implementation follows Professor Christopher D. Carroll's [lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Investment/qModel/).
 
-The Qmod class' current functions include:
+### 1. Qmod
+
+The Qmod folder includes a file defining the Qmod Python class, which represents a Q-model of capital investment. The Qmod class' current functions include:
 - Solution of the model, obtaining its policy rule.
 - Drawing of the model's phase diagram.
 - Simulation of the model's dynamics starting from a given level of capital.
 
-Examples of these uses can be found in [Examples.ipynb](https://github.com/Mv77/Q_Investment/blob/master/Examples.ipynb).
+### 2. Dolo
 
-[Examples_structural_change.ipynb](https://github.com/Mv77/Q_Investment/blob/master/Examples_structural_change.ipynb) provides examples of how to obtain the model's dynamic reaction to changes in parameters.
-The examples include sudden changes, and changes that are announced with anticipation.
+The Dolo folder implements the model using [Dolo](https://dolo.readthedocs.io/en/latest/#).
+
+### 3. Examples
+
+Current examples include:
+- [Qmod_basic_features](https://github.com/Mv77/Q_Investment/blob/master/Examples/Qmod_basic_features.ipynb): illustrates how to use Qmod and its main functions.
+- [Dolo_simulations](https://github.com/Mv77/Q_Investment/blob/master/Examples/Dolo_simulations.ipynb): uses Dolo to conduct more complicated simulation exercises that could not be easily achieved using Qmod.
+- [Structural_changes_Qmod_Dolo](https://github.com/Mv77/Q_Investment/blob/master/Examples/Structural_changes_Qmod_Dolo.ipynb): solves the dynamic exercises in Professor Christopher D. Carroll's [lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Investment/qModel/) using both Qmod and Dolo.
