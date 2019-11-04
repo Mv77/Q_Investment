@@ -129,7 +129,13 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300, figname = None)
             lam[i] = mod2.findLambda(k[i],k[i+1])
 
     lam[T_sim-1] = mod2.findLambda(k[T_sim-1],mod2.k1Func(k[T_sim-1]))
-
+    
+    # Get a vector with the post-itc price of capital, to calculate q
+    Pcal = np.array([1-mod1.zeta]*t_change + [1-mod2.zeta]*(T_sim-t_change))
+    
+    # Compute q
+    q = lam/Pcal
+    
     # Create a figure with phase diagrams and dynamics.
     fig, ax = plt.subplots(3, 2, figsize=(15,12))
     
@@ -171,6 +177,12 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300, figname = None)
     ax[1,1].plot(time,lam,'.k')
     ax[1,1].set_xlabel('$t$')
     ax[1,1].set_ylabel('$\\lambda_t$')
+    
+    # 6th plot: q dynamics
+    time = range(T_sim)
+    ax[2,1].plot(time,q,'.k')
+    ax[2,1].set_xlabel('$t$')
+    ax[2,1].set_ylabel('$q_t$')
     
     if figname is not None:
         fig.savefig('../Figures/'+figname+'.svg')
