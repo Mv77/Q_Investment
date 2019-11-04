@@ -1,5 +1,7 @@
 ## Qmod: A Python class implementing the Abel-Hayashi "Marginal Q" model of investment.
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Mv77/Q_Investment/master)
+
 This implementation follows Professor Christopher D. Carroll's [lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Investment/qModel/).
 
 ### 1. Qmod
