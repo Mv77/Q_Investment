@@ -131,11 +131,13 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300, figname = None)
     lam[T_sim-1] = mod2.findLambda(k[T_sim-1],mod2.k1Func(k[T_sim-1]))
 
     # Create a figure with phase diagrams and dynamics.
-    plt.figure()
-
+    fig, ax = plt.subplots(3, 2, figsize=(15,12))
+    
+    # 1st plot: lambda phase diagrams
+    
     # Plot k,lambda path.
-    plt.plot(k,lam,'.k')
-    plt.plot(k[t_change],lam[t_change],'.r',label = 'Change takes effect')
+    ax[0,0].plot(k,lam,'.k')
+    ax[0,0].plot(k[t_change],lam[t_change],'.r',label = 'Change takes effect')
 
     # Plot the loci of the pre and post-change models.
     k_range = np.linspace(0.1*min(mod1.kss,mod2.kss),2*max(mod1.kss,mod2.kss),
@@ -146,21 +148,19 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300, figname = None)
     for i in range(2):
 
         # Plot k0 locus
-        plt.plot(k_range,mods[i].P*np.ones(npoints),
-                 linestyle = '--', color = colors[i],label = labels[i])
+        ax[0,0].plot(k_range,mods[i].P*np.ones(npoints),
+                     linestyle = '--', color = colors[i],label = labels[i])
         # Plot lambda0 locus
-        plt.plot(k_range,[mods[i].lambda0locus(x) for x in k_range],
-                 linestyle = '--', color = colors[i])
+        ax[0,0].plot(k_range,[mods[i].lambda0locus(x) for x in k_range],
+                     linestyle = '--', color = colors[i])
         # Plot steady state
-        plt.plot(mods[i].kss,mods[i].P,marker = '*', color = colors[i])
+        ax[0,0].plot(mods[i].kss,mods[i].P,marker = '*', color = colors[i])
 
-    plt.title('Phase diagrams and model dynamics')
-    plt.xlabel('K')
-    plt.ylabel('Lambda')
-    plt.legend()
+    ax[0,0].set_xlabel('K')
+    ax[0,0].set_ylabel('Lambda')
+    ax[0,0].legend()
     
     if figname is not None:
-        fig = plt.gcf()
         fig.savefig('../Figures/'+figname+'.svg')
         fig.savefig('../Figures/'+figname+'.png')
         fig.savefig('../Figures/'+figname+'.pdf')
