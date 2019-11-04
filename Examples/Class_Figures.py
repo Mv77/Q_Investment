@@ -160,6 +160,18 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300, figname = None)
     ax[0,0].set_ylabel('Lambda')
     ax[0,0].legend()
     
+    # 3rd plot: capital dynamics
+    time = range(T_sim)
+    ax[1,0].plot(time,k,'.k')
+    ax[1,0].set_xlabel('$t$')
+    ax[1,0].set_ylabel('$k_t$')
+    
+    # 4rd plot: lambda dynamics
+    time = range(T_sim)
+    ax[1,1].plot(time,lam,'.k')
+    ax[1,1].set_xlabel('$t$')
+    ax[1,1].set_ylabel('$\\lambda_t$')
+    
     if figname is not None:
         fig.savefig('../Figures/'+figname+'.svg')
         fig.savefig('../Figures/'+figname+'.png')
