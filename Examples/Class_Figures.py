@@ -115,6 +115,8 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300, figname = None)
     # Find paths of capital and lambda
     k = np.zeros(T_sim)
     lam = np.zeros(T_sim)
+    invest = np.zeros(T_sim)
+    
     k[0] = k0
     for i in range(0,T_sim-1):
 
@@ -123,12 +125,17 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300, figname = None)
             # path computed above.
             k[i+1] = k[i]*(1-mod1.delta) + inv[i]
             lam[i] = mod1.findLambda(k[i],k[i+1])
+            invest[i] = inv[i]
+            
         else:
             # After the change, investment follows the post-change policy rule.
             k[i+1] = mod2.k1Func(k[i])
             lam[i] = mod2.findLambda(k[i],k[i+1])
-
+            invest[i] = k[i+1] - (1-mod2.delta)*k[i]
+            
+    # Compute final period lambda and investment
     lam[T_sim-1] = mod2.findLambda(k[T_sim-1],mod2.k1Func(k[T_sim-1]))
+    invest[T_sim-1] = mod2.k1Func(k[T_sim-1]) - (1-mod2.delta)*k[T_sim-1]
     
     # Get a vector with the post-itc price of capital, to calculate q
     Pcal = np.array([1-mod1.zeta]*t_change + [1-mod2.zeta]*(T_sim-t_change))
@@ -198,13 +205,16 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300, figname = None)
     ax[1,0].set_ylabel('$k_t$')
     
     # 4rd plot: lambda dynamics
-    time = range(T_sim)
     ax[1,1].plot(time,lam,'.k')
     ax[1,1].set_xlabel('$t$')
     ax[1,1].set_ylabel('$\\lambda_t$')
     
+    # 5th plot: investment dynamics
+    ax[2,0].plot(time,invest,'.k')
+    ax[2,0].set_xlabel('$t$')
+    ax[2,0].set_ylabel('$i_t$')
+    
     # 6th plot: q dynamics
-    time = range(T_sim)
     ax[2,1].plot(time,q,'.k')
     ax[2,1].set_xlabel('$t$')
     ax[2,1].set_ylabel('$q_t$')
