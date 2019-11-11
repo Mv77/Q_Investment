@@ -31,7 +31,9 @@
 # %% {"code_folding": []}
 # Preamble
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.rcParams['axes.labelsize'] = 20
 
 from copy import deepcopy
 from scipy import optimize
@@ -145,6 +147,8 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300, figname = None)
     
     # Create a figure with phase diagrams and dynamics.
     fig, ax = plt.subplots(3, 2, figsize=(15,12))
+    
+    labelsize = 10
     
     # 1st plot: lambda phase diagrams
     
