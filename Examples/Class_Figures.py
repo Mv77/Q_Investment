@@ -162,9 +162,34 @@ def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300, figname = None)
         # Plot steady state
         ax[0,0].plot(mods[i].kss,mods[i].P,marker = '*', color = colors[i])
 
-    ax[0,0].set_xlabel('K')
-    ax[0,0].set_ylabel('Lambda')
+    ax[0,0].set_xlabel('$k$')
+    ax[0,0].set_ylabel('$\\lambda$')
     ax[0,0].legend()
+    
+    # 2nd plot: q phase diagrams
+    
+    # Plot k,lambda path.
+    ax[0,1].plot(k,q,'.k')
+    ax[0,1].plot(k[t_change],q[t_change],'.r',label = 'Change takes effect')
+
+    # Plot the loci of the pre and post-change models.
+    mods = [mod1,mod2]
+    colors = ['r','b']
+    labels = ['Pre-change','Post-change']
+    for i in range(2):
+
+        # Plot k0 locus
+        ax[0,1].plot(k_range,np.ones(npoints),
+                     linestyle = '--', color = colors[i],label = labels[i])
+        # Plot q0 locus
+        ax[0,1].plot(k_range,[mods[i].lambda0locus(x)/mods[i].P for x in k_range],
+                     linestyle = '--', color = colors[i])
+        # Plot steady state
+        ax[0,1].plot(mods[i].kss,1,marker = '*', color = colors[i])
+
+    ax[0,1].set_xlabel('$k$')
+    ax[0,1].set_ylabel('$q$')
+    ax[0,1].legend()
     
     # 3rd plot: capital dynamics
     time = range(T_sim)
