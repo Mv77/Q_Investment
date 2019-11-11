@@ -331,8 +331,7 @@ class Qmod:
     
     # Plot phase diagram of the model
     def phase_diagram(self, k_min = 0.1, k_max = 2,npoints = 200,
-                      stableArm = False,
-                      Qspace = False):
+                      stableArm = False):
         """
         Parameters:
             - [k_min,k_max]: minimum and maximum levels of capital for the
@@ -342,30 +341,19 @@ class Qmod:
                              the loci are plotted.
             - stableArm    : enables/disables plotting of the model's stable
                              arm.
-            - Qspace       : boolean indicating whether the diagram should be
-                             in Q space instead of lambda space.
         """
         
         # Create capital grid.
         k = np.linspace(k_min*self.kss,k_max*self.kss,npoints)
         
-        # Define normalization factor in case we are in Qspace
-        fact = 1
-        yLabel = '\\lambda'
-        if Qspace:
-            fact = 1/self.P
-            yLabel = 'q'
-            
-        # Plot 
         plt.figure()
         # Plot k0 locus
-        plt.plot(k,self.P*np.ones(npoints) * fact,
-                 label = '$\\dot{k}=0$ locus')
+        plt.plot(k,self.P*np.ones(npoints),label = '$\\dot{k}=0$ locus')
         # Plot lambda0 locus
-        plt.plot(k,[self.lambda0locus(x)*fact for x in k],
-                 label = '$\\dot{'+yLabel+'}=0$ locus')
+        plt.plot(k,[self.lambda0locus(x) for x in k],
+                 label = '$\\dot{\\lambda}=0$ locus')
         # Plot steady state
-        plt.plot(self.kss,self.P*fact,'*r', label = 'Steady state')
+        plt.plot(self.kss,self.P,'*r', label = 'Steady state')
         
         # PLot stable arm
         if stableArm:
@@ -373,14 +361,13 @@ class Qmod:
             if self.k1Func is None:
                 raise Exception('Solve the model first to plot the stable arm!')
             else:
-                lam = np.array([self.findLambda(k0 = x, k1 = self.k1Func(x))
-                                for x in k])
-                plt.plot(k,lam*fact, label = 'Stable arm')
+                lam = [self.findLambda(k0 = x, k1 = self.k1Func(x)) for x in k]
+                plt.plot(k,lam, label = 'Stable arm')
         
         # Labels
         plt.title('Phase diagram')
-        plt.xlabel('$k$')
-        plt.ylabel('$'+yLabel+'$')
+        plt.xlabel('K')
+        plt.ylabel('Lambda')
         plt.legend()
         
         plt.show()
