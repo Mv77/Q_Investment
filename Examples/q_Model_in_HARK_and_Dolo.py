@@ -423,7 +423,7 @@ def plotQmodel(model, exog, returnDF = False):
     
     # Plot exogenous variables
     ex = ['R','tau','itc_1','psi']
-    fig, axes = plt.pyplot.subplots(1,len(ex), figsize = (10,3))
+    fig, axes = plt.subplots(1,len(ex), figsize = (10,3))
     axes = axes.flatten()
     
     for i in range(len(ex)):
@@ -436,7 +436,7 @@ def plotQmodel(model, exog, returnDF = False):
     fig.suptitle('Exogenous variables', fontsize=16)
     
     # Plot optimal response variables
-    fig, axes = plt.pyplot.subplots(2,2, figsize = (10,6))
+    fig, axes = plt.subplots(2,2, figsize = (10,6))
     axes = axes.flatten()
     opt = ['k','i','lambda_1','q_1']
     
@@ -480,7 +480,7 @@ exog.itc_1 = 0
 exog.psi = 1
 
 # Solve for the optimal response and plot the results  
-plotQmodel(model,exog)
+plotQmodel(QDolo,exog)
 
 # %% [markdown]
 # ### 3.2. Multiple parameters changing at different times
@@ -506,4 +506,4 @@ exog.psi= np.concatenate((np.repeat(1,10),
 exog.R = 1.02
 
 # Solve for the optimal response and plot the results  
-plotQmodel(model,exog)
+plotQmodel(QDolo,exog)
