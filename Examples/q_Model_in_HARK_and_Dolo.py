@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
@@ -27,9 +28,116 @@
 # Preamble
 import numpy as np
 import matplotlib.pyplot as plt
+# %% [markdown]
+# ## 1. Basic features of the Qmod class
+#
+# We first illustrate how to create and use the main features of the Qmod class.
+
+# %% [markdown]
+# ### Importing the class and creating a model
+#
+# Since the class is hosted in a different file, we import it. After that, we create an instance of the model with the default parameter values.
+
+# %%
+# Since the Qmod class is in other folder we need to
+# change the path.
+import sys
+sys.path.append('../')
+
+# Import the class definition from Qmod/Q_Investment.py
+from Qmod.Q_investment import Qmod
+
+# Create model object
+Qexample = Qmod()
+
+# %% [markdown]
+# ### Model solution and policy rule.
+#
+# Now that we have created the model, we can solve it. To solve the model is to find its policy rule: a function specifying what is the optimal value for capital at $t+1$ given capital at $t$ (implicitly defining optimal investment). Solving the model also finds is steady state value of capital.
+#
+# We now illustrate these two features.
+
+# %%
+# Solve the model
+Qexample.solve()
+
+# Print its steady state
+print('The steady state value of capital is %f' % (Qexample.kss))
+
+# Plot policy rule
+k = np.linspace(1,3*Qexample.kss,20)
+
+plt.figure()
+plt.plot(k,[Qexample.k1Func(x) for x in k], label = "Optimal capital")
+plt.plot(k,k, linestyle = '--', color = 'k', label = "45° line")
+plt.plot(Qexample.kss,Qexample.kss,'*r', label = "Steady state")
+plt.title('Policy Rule')
+plt.xlabel('$k(t)$')
+plt.ylabel('$k(t+1)$')
+plt.legend()
+plt.show()
+# %% [markdown]
+# ### Simulation of capital dynamics.
+#
+# The class can also compute the dynamic adjustment of capital from a given starting level.
+#
+# We can use this to see how adjustment costs affect the speed of adjustment.
+
+# %%
+# Create and solve two instances, one with high and one with low adjustment costs omega
+Qlow  = Qmod(omega =  0.1)
+Qhigh = Qmod(omega =  0.9)
+
+Qlow.solve()
+Qhigh.solve()
+
+# Simulate adjustment from an initial capital level
+k0 = 2*Qhigh.kss
+t = 50
+k_low = Qlow.simulate(k0,t)
+k_high = Qhigh.simulate(k0,t)
+
+# Plot
+plt.figure()
+plt.plot(k_low, label = 'Low $\\omega$')
+plt.plot(k_high, label = 'High $\\omega$')
+plt.axhline(y = Qhigh.kss,linestyle = '--',color = 'k', label = 'Steady state ${k}$')
+plt.title('Capital')
+plt.xlabel('$t$')
+plt.ylabel('$k(t)$')
+plt.legend()
+plt.show()
+# %% [markdown]
+# ### Phase diagram.
+#
+# The class can plot a model's phase diagram. The model has to be solved if the stable arm is to be displayed.
+
+# %%
+# Create and solve model object
+Qexample = Qmod()
+Qexample.solve()
+# Generate its phase diagram
+Qexample.phase_diagram(stableArm = True)
+
+# %% [markdown]
+# ## Structural Changes Using Qmod and Dolo
+#
+# The tools in this repository can also be used to analyze the models optimal dynamic response to structural changes.
+#
+# To illustrate this capabilities, I simulate the changes discussed in Christopher D. Carroll's graduate
+# Macroeconomics [lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Investment/qModel/):
+# productivity, corporate tax rate, and investment tax credit changes.
+#
+# For each change I display the behavior of the model under two different assumptions:
+# * The change takes place at $t=0$ without notice.
+# * The change is announced at $t=0$ but takes place at $t=5$.
+
+# %% {"code_folding": []}
+# Preamble
+import numpy as np
+import matplotlib.pyplot as plt
 
 from copy import deepcopy
-from scipy import optimize
 
 from dolo import *
 import dolo.algos.perfect_foresight as pf
@@ -44,119 +152,14 @@ sys.path.append('../')
 from Qmod.Q_investment import Qmod
 
 # %% [markdown]
-# I first define functions to compute and present optimal dynamics in face of
+# I first import a function that computes and presents optimal dynamics in face of
 # structural changes in the Qmod implementation.
 # %% {"code_folding": [0]}
-# Function definitions
-def pathValue(invest,mod1,mod2,k0,t):
-    '''
-    Computes the value of taking investment decisions [i(0),i(1),...,i(t-1)]
-    starting at capital k0 and knowing that the prevailing model will switch
-    from mod1 to mod2 at time t.
+from Qmod.Q_investment import structural_change
 
-    Parameters:
-        - invest: vector/list with investment values for periods 0 to t-1
-        - mod1  : Qmod object representing the parameter values prevailing from
-                  time 0 to t-1.
-        - mod2  : Qmod object representing the parameter values prevailing from
-                  time t onwards.
-        - k0    : capital at time 0.
-        - t     : time of the structural change.
-    '''
 
-    # Initialize capital and value (utility)
-    k = np.zeros(t+1)
-    k[0] = k0
-    value = 0
-
-    # Compute capital and utility flows until time t-1
-    for i in range(t):
-        flow = mod1.flow(k[i],invest[i])
-        value += flow*mod1.beta**i
-        k[i+1] = k[i]*(1-mod1.delta) + invest[i]
-
-    # From time t onwards, model 2 prevails and its value function can be used.
-    value += (mod1.beta**t)*mod2.value_func(k[t])
-
-    return(value)
-
-def structural_change(mod1,mod2,k0,t_change,T_sim,npoints = 300):
-    """
-    Computes (optimal) capital and lambda dynamics in face of a structural
-    change in the Q investment model.
-
-    Parameters:
-        - mod1    : Qmod object representing the parameter values prevailing
-                    from time 0 to t_change-1.
-        - mod2    : Qmod object representing the parameter values prevailing
-                    from time t_change onwards.
-        - k0      : initial value for capital.
-        - t_change: time period at which the structural change takes place. It
-                    is assumed that the change is announced at period 0.
-        - T_sim   : final time period of the simulation.
-        - npoints : number of points in the capital grid to be used for phase
-                    diagram plots.
-    """
-
-    # If the change is announced with anticipation, the optimal path of
-    # investment from 0 to t_change-1 is computed, as it does not correspond to
-    # the usual policy rule.
-    if t_change > 0:
-        fobj = lambda x: -1*pathValue(x,mod1,mod2,k0,t_change)
-        inv = optimize.minimize(fobj,x0 = np.ones(t)*mod1.kss*mod2.delta,
-                                options = {'disp': True},
-                                tol = 1e-16).x
-
-    # Find paths of capital and lambda
-    k = np.zeros(T_sim)
-    lam = np.zeros(T_sim)
-    k[0] = k0
-    for i in range(0,T_sim-1):
-
-        if i < t_change:
-            # Before the change, investment follows the optimal
-            # path computed above.
-            k[i+1] = k[i]*(1-mod1.delta) + inv[i]
-            lam[i] = mod1.findLambda(k[i],k[i+1])
-        else:
-            # After the change, investment follows the post-change policy rule.
-            k[i+1] = mod2.k1Func(k[i])
-            lam[i] = mod2.findLambda(k[i],k[i+1])
-
-    lam[T_sim-1] = mod2.findLambda(k[T_sim-1],mod2.k1Func(k[T_sim-1]))
-
-    # Create a figure with phase diagrams and dynamics.
-    plt.figure()
-
-    # Plot k,lambda path.
-    plt.plot(k,lam,'.k')
-    plt.plot(k[t_change],lam[t_change],'.r',label = 'Change takes effect')
-
-    # Plot the loci of the pre and post-change models.
-    k_range = np.linspace(0.1*min(mod1.kss,mod2.kss),2*max(mod1.kss,mod2.kss),
-                          npoints)
-    mods = [mod1,mod2]
-    colors = ['r','b']
-    labels = ['Pre-change','Post-change']
-    for i in range(2):
-
-        # Plot k0 locus
-        plt.plot(k_range,mods[i].P*np.ones(npoints),
-                 linestyle = '--', color = colors[i],label = labels[i])
-        # Plot lambda0 locus
-        plt.plot(k_range,[mods[i].lambda0locus(x) for x in k_range],
-                 linestyle = '--', color = colors[i])
-        # Plot steady state
-        plt.plot(mods[i].kss,mods[i].P,marker = '*', color = colors[i])
-
-    plt.title('Phase diagrams and model dynamics')
-    plt.xlabel('K')
-    plt.ylabel('Lambda')
-    plt.legend()
-
-    return({'k':k, 'lambda':lam})
 # %% [markdown]
-# I now define functions to handle parameter changes in the Dolo implementation
+# I now define a function to handle parameter changes in the Dolo implementation
 
 # %% {"code_folding": [0]}
 def simul_change_dolo(model, k0,  exog0, exog1, t_change, T_sim):
@@ -407,3 +410,122 @@ plt.legend()
 plt.title('Capital dynamics')
 plt.ylabel('$k_t$ : capital')
 plt.xlabel('$t$ : time')
+
+# %%
+# Setup
+import matplotlib as plt
+import numpy as np
+from dolo import *
+import dolo.algos.perfect_foresight as pf
+import dolo.algos.value_iteration as vi
+import pandas as pd
+
+# Define a function to handle plots
+def plotQmodel(model, exog, returnDF = False):
+    
+    # Simpulate the optimal response
+    dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
+    
+    # Plot exogenous variables
+    
+    ex = ['R','tau','itc_1','psi']
+    fig, axes = plt.pyplot.subplots(1,len(ex), figsize = (10,3))
+    axes = axes.flatten()
+    
+    for i in range(len(ex)):
+        ax = axes[i]
+        ax.plot(dr[ex[i]],'.')
+        ax.set_xlabel('Time')
+        ax.set_ylabel(ex[i])
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    fig.suptitle('Exogenous variables', fontsize=16)
+    
+    # Plot optimal response variables
+    fig, axes = plt.pyplot.subplots(2,2, figsize = (10,6))
+    axes = axes.flatten()
+    opt = ['k','i','lambda_1','q_1']
+    
+    for i in range(len(opt)):
+        ax = axes[i]
+        ax.plot(dr[opt[i]],'.')
+        ax.set_xlabel('Time')
+        ax.set_ylabel(opt[i])
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    fig.suptitle('Endogenous response', fontsize=16)
+    
+    if returnDF:
+        return(dr)
+
+
+# %%
+# Load and calibrate the model model
+model = yaml_import("../Dolo/Q_model.yaml")
+
+alpha = 0.33
+delta = 0.05
+omega = 2
+
+model.set_calibration(alpha = alpha, delta = delta, omega = omega)
+
+# %%
+# Interest rate simulation
+
+# Create empty dataframe for exog. variables
+exog = pd.DataFrame(columns = ['R','tau','itc_1','psi'])
+
+# Generate an interest rate process
+exog.R = np.concatenate((np.repeat(1.03,20),
+                    np.repeat(1.05,10),
+                    np.repeat(1.01,10)))
+
+# Leave tau at 0
+exog.tau = 0
+# Leave itc at 0
+exog.itc_1 = 0
+# Leave psi at 1
+exog.psi = 1
+
+# Solve for the optimal response and plot the results  
+plotQmodel(model,exog)
+
+# %%
+# Tax rate simulation
+
+# Create empty dataframe for exog. variables
+exog = pd.DataFrame(columns = ['R','tau','itc_1','psi'])
+
+# Generate a future tax cut dynamic
+exog.tau = np.concatenate((np.repeat(0.2,20),
+                           np.repeat(0,20)))
+
+# Leave R at 1.02
+exog.R = 1.02
+# Leave itc at 0
+exog.itc_1 = 0
+# Leave psi at 0
+exog.psi = 1
+
+# Solve for the optimal response and plot the results  
+plotQmodel(model,exog)
+
+# %%
+# ITC simulation
+
+# Create empty dataframe for exog. variables
+exog = pd.DataFrame(columns = ['R','tau','itc_1','psi'])
+
+# Generate a future itc increase dynamic
+exog.itc_1 = np.concatenate((np.repeat(0,20),
+                           np.repeat(0.25,20)))
+
+# Leave R at 1.02
+exog.R = 1.02
+# Leave tau at 0
+exog.tau = 0
+# Leave psi at 1
+exog.psi = 1
+
+# Solve for the optimal response and plot the results  
+plotQmodel(model,exog)
