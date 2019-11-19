@@ -14,14 +14,11 @@
 # ---
 
 # %% [markdown]
-# # Examples of structural change in the Abel-Hayashi "Q" investment model
+# # Structural Changes in the q Model: lecture notes experiments
 #
-# This notebook illustrates the dynamic behavior of capital and its marginal
-# value in the Abel-Hayashi model of investment when structural changes happen.
-#
-# I simulate the changes discussed in Prof. Christopher D. Carroll's graduate
+# This notebook simulates the thought experiments discussed in Christopher D. Carroll's graduate
 # Macroeconomics [lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/Investment/qModel/):
-# productivity, corporate tax rate, and investment tax credit changes.
+# productivity, corporate tax rate, and investment tax credit changes. For each experiment, the the figure from the lecture notes is reproduced.
 #
 # For each change I display the behavior of the model in two different
 # contexts:
@@ -51,8 +48,7 @@ sys.path.append('../')
 from Qmod.Q_investment import Qmod
 
 # %% [markdown]
-# I first define functions to compute and present optimal dynamics in face of
-# structural changes in the Qmod implementation.
+# Since the plots for every experiment have the same format, I first define functions that carry out the analysis given a path for the exogenous variables.
 # %% {"code_folding": [0]}
 # Function definitions
 def pathValue(invest,mod1,mod2,k0,t):
