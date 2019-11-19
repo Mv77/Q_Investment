@@ -28,6 +28,7 @@
 # Preamble
 import numpy as np
 import matplotlib.pyplot as plt
+from copy import deepcopy
 # %% [markdown]
 # ## 1. Basic features of the Qmod class
 #
@@ -120,7 +121,7 @@ Qexample.solve()
 Qexample.phase_diagram(stableArm = True)
 
 # %% [markdown]
-# ## Structural Changes Using Qmod and Dolo
+# ## 2. Structural Changes Using Qmod and Dolo
 #
 # The tools in this repository can also be used to analyze the models optimal dynamic response to structural changes.
 #
@@ -131,55 +132,14 @@ Qexample.phase_diagram(stableArm = True)
 # For each change I display the behavior of the model under two different assumptions:
 # * The change takes place at $t=0$ without notice.
 # * The change is announced at $t=0$ but takes place at $t=5$.
+#
+# I find the optimal responses using both Qmod and the Dolo implementation of the q-Model. Thus, I first load the required tools that Dolo uses.
 
 # %% {"code_folding": []}
-# Preamble
-import numpy as np
-import matplotlib.pyplot as plt
-
-from copy import deepcopy
-
 from dolo import *
 import dolo.algos.perfect_foresight as pf
 import dolo.algos.value_iteration as vi
-
 import pandas as pd
-
-# Since the Qmod class is in other folder we need to
-# change the path.
-import sys
-sys.path.append('../')
-from Qmod.Q_investment import Qmod
-
-# %% [markdown]
-# I first import a function that computes and presents optimal dynamics in face of
-# structural changes in the Qmod implementation.
-# %% {"code_folding": [0]}
-from Qmod.Q_investment import structural_change
-
-
-# %% [markdown]
-# I now define a function to handle parameter changes in the Dolo implementation
-
-# %% {"code_folding": [0]}
-def simul_change_dolo(model, k0,  exog0, exog1, t_change, T_sim):
-
-    # The first step is to create time series for the exogenous variables
-    exog = np.array([exog1,]*(T_sim - t_change))
-    if t_change > 0:
-        exog = np.concatenate((np.array([exog0,]*(t_change)),
-                               exog),
-                              axis = 0)
-    exog = pd.DataFrame(exog, columns = ['R','tau','itc_1','psi'])
-
-    # Simpulate the optimal response
-    dr = pf.deterministic_solve(model = model,shocks = exog, T=T_sim,
-                                verbose=True, s1 = k0)
-
-    # Dolo uses the first period to report the steady state
-    # so we ommit it.
-    return(dr[1:])
-
 
 # %% [markdown]
 # Now I create a base model parametrization using both the Qmod class and the Dolo implementation.
@@ -223,9 +183,39 @@ QDolo = yaml_import("../Dolo/Q_model.yaml")
 QDolo.set_calibration(R = R, alpha = alpha, delta = delta, omega = omega)
 
 # %% [markdown]
-# ## Examples:
+# I import a function that computes and presents optimal dynamics in face of
+# structural changes in the Qmod implementation.
+# %% {"code_folding": [0]}
+from Qmod.Q_investment import structural_change
+# %% [markdown]
+# And define another function to easily simulate parameter changes in the Dolo
+# implementation
+# %% {"code_folding": [0]}
+def simul_change_dolo(model, k0,  exog0, exog1, t_change, T_sim):
+
+    # The first step is to create time series for the exogenous variables
+    exog = np.array([exog1,]*(T_sim - t_change))
+    if t_change > 0:
+        exog = np.concatenate((np.array([exog0,]*(t_change)),
+                               exog),
+                              axis = 0)
+    exog = pd.DataFrame(exog, columns = ['R','tau','itc_1','psi'])
+
+    # Simpulate the optimal response
+    dr = pf.deterministic_solve(model = model,shocks = exog, T=T_sim,
+                                verbose=True, s1 = k0)
+
+    # Dolo uses the first period to report the steady state
+    # so we ommit it.
+    return(dr[1:])
+
+# %% [markdown]
+# ### Examples:
 #
-# ## 1. An unanticipated increase in productivity
+# We are now ready to simulate structural changes.
+# %% [markdown]
+# #### 2.1. An unanticipated increase in productivity
+
 # %% {"code_folding": [0]}
 # Total simulation time
 T = 20
@@ -264,7 +254,7 @@ plt.title('Capital dynamics')
 plt.ylabel('$k_t$ : capital')
 plt.xlabel('$t$ : time')
 # %% [markdown]
-# ## 2. An increase in productivity announced at t=0 but taking effect at t=5
+# #### 2.2. An increase in productivity announced at t=0 but taking effect at t=5
 # %% {"code_folding": []}
 # Repeat the calculation now assuming the change happens at t=5
 t = 5
@@ -289,7 +279,7 @@ plt.title('Capital dynamics')
 plt.ylabel('$k_t$ : capital')
 plt.xlabel('$t$ : time')
 # %% [markdown]
-# ## 3. An unanticipated corporate tax-cut
+# #### 2.3. An unanticipated corporate tax-cut
 # %% {"code_folding": [0]}
 # Set the taxes of the 'high-tax' scenario
 tau_high = 0.4
@@ -326,7 +316,7 @@ plt.title('Capital dynamics')
 plt.ylabel('$k_t$ : capital')
 plt.xlabel('$t$ : time')
 # %% [markdown]
-# ## 4. A corporate tax cut announced at t=0 but taking effect at t=5
+# #### 2.4. A corporate tax cut announced at t=0 but taking effect at t=5
 # %% {"code_folding": [0]}
 # Modify the time of the change
 t = 5
@@ -351,7 +341,7 @@ plt.title('Capital dynamics')
 plt.ylabel('$k_t$ : capital')
 plt.xlabel('$t$ : time')
 # %% [markdown]
-# ## 5. An unanticipated ITC increase
+# #### 2.5. An unanticipated ITC increase
 # %% {"code_folding": [0]}
 # Set time of the change
 t=0
@@ -386,7 +376,7 @@ plt.title('Capital dynamics')
 plt.ylabel('$k_t$ : capital')
 plt.xlabel('$t$ : time')
 # %% [markdown]
-# ## 6. An ITC increase announced at t=0 but taking effect at t=5
+# #### 2.6. An ITC increase announced at t=0 but taking effect at t=5
 # %% {"code_folding": [0]}
 # Modify time of the change
 t = 5
@@ -411,15 +401,20 @@ plt.title('Capital dynamics')
 plt.ylabel('$k_t$ : capital')
 plt.xlabel('$t$ : time')
 
-# %%
-# Setup
-import matplotlib as plt
-import numpy as np
-from dolo import *
-import dolo.algos.perfect_foresight as pf
-import dolo.algos.value_iteration as vi
-import pandas as pd
 
+# %% [markdown]
+# ## 3.The advantages of Dolo
+#
+# Currently, Qmod represents a model in which the interest rate, taxes, and productivity are considered parameters. I compute the transitional dynamics of structural changes by approximating the final value function and then simultaneously optimizing over the transitional investment decisions. This approach works for simple changes that are not far into the future, but even then it can be imprecise and slow (see e.g. Experiment 2.2. above).
+#
+# On the other hand, the Dolo implementation considers taxes, interest rates, and productivity as exogenous dynamic variables, and solves the problem of transitional dynamics using dynamic optimization tools. This makes it able to easily handle more complicated changes and paths for these variables in the future.
+#
+# This section illustrates simulations of structural changes in Dolo that would be hard to handle using Qmod. The premise, as before, is that the firm is sitting in steady state and, at time $t=0$ it learns that the exogenous variables will follow the represented paths in the future. It then incorporates this information and reacts optimally.
+
+# %% [markdown]
+# I first define a function that, given a future path for the exogenous variables, uses Dolo to solve for the firm's optimal response and plots the results.
+
+# %%
 # Define a function to handle plots
 def plotQmodel(model, exog, returnDF = False):
     
@@ -427,7 +422,6 @@ def plotQmodel(model, exog, returnDF = False):
     dr = pf.deterministic_solve(model = model,shocks = exog,verbose=True)
     
     # Plot exogenous variables
-    
     ex = ['R','tau','itc_1','psi']
     fig, axes = plt.pyplot.subplots(1,len(ex), figsize = (10,3))
     axes = axes.flatten()
@@ -459,26 +453,24 @@ def plotQmodel(model, exog, returnDF = False):
         return(dr)
 
 
-# %%
-# Load and calibrate the model model
-model = yaml_import("../Dolo/Q_model.yaml")
+# %% [markdown]
+# I now produce various simulations.
 
-alpha = 0.33
-delta = 0.05
-omega = 2
-
-model.set_calibration(alpha = alpha, delta = delta, omega = omega)
+# %% [markdown]
+# ### 3.1. Interest rates that change multiple times.
 
 # %%
-# Interest rate simulation
+# First define the paths of exogenous variables
 
 # Create empty dataframe for exog. variables
 exog = pd.DataFrame(columns = ['R','tau','itc_1','psi'])
 
 # Generate an interest rate process
 exog.R = np.concatenate((np.repeat(1.03,20),
-                    np.repeat(1.05,10),
-                    np.repeat(1.01,10)))
+                         np.repeat(1.05,10),
+                         np.repeat(0.97,10),
+                         np.repeat(1.07,20),
+                         np.repeat(1.03,10)))
 
 # Leave tau at 0
 exog.tau = 0
@@ -490,42 +482,28 @@ exog.psi = 1
 # Solve for the optimal response and plot the results  
 plotQmodel(model,exog)
 
-# %%
-# Tax rate simulation
+# %% [markdown]
+# ### 3.2. Multiple parameters changing at different times
 
+# %%
 # Create empty dataframe for exog. variables
 exog = pd.DataFrame(columns = ['R','tau','itc_1','psi'])
 
-# Generate a future tax cut dynamic
+# Generate future tax dynamics
 exog.tau = np.concatenate((np.repeat(0.2,20),
                            np.repeat(0,20)))
 
-# Leave R at 1.02
-exog.R = 1.02
-# Leave itc at 0
-exog.itc_1 = 0
-# Leave psi at 0
-exog.psi = 1
+# Generate future itc dynamics
+exog.itc_1 = np.concatenate((np.repeat(0,15),
+                             np.repeat(0.2,25)))
 
-# Solve for the optimal response and plot the results  
-plotQmodel(model,exog)
-
-# %%
-# ITC simulation
-
-# Create empty dataframe for exog. variables
-exog = pd.DataFrame(columns = ['R','tau','itc_1','psi'])
-
-# Generate a future itc increase dynamic
-exog.itc_1 = np.concatenate((np.repeat(0,20),
-                           np.repeat(0.25,20)))
+# Generate future productivity dynamics
+exog.psi= np.concatenate((np.repeat(1,10),
+                          np.repeat(1.1,20),
+                          np.repeat(1,10)))
 
 # Leave R at 1.02
 exog.R = 1.02
-# Leave tau at 0
-exog.tau = 0
-# Leave psi at 1
-exog.psi = 1
 
 # Solve for the optimal response and plot the results  
 plotQmodel(model,exog)
