@@ -49,38 +49,41 @@ from Qmod.Q_investment import Qmod
 # I then define a function that takes two Qmod objects and plots their phase diagrams in the same figure.
 
 # %% {"code_folding": []}
-def phase_diagrams(mod1,mod2,npoints = 300):
+def phase_diagrams(mod1,mod2,k_min,k_max,npoints = 300):
     """
     Draws the phase diagram of the Qmodel under two different sets of
     parameter values in the same figure, and returns it.
 
     Parameters:
-        - mod1    : Qmod object representing the first set of parameter values.
-        - mod1    : Qmod object representing the second set of parameter values.
-        - k0      : initial value for capital.
-        - npoints : number of points in the capital grid to be used for phase
-                    diagram plots.
+        - mod1          : Qmod object representing the first set of parameter values.
+        - mod1          : Qmod object representing the second set of parameter values.
+        - [k_min,k_max] : limits for the value of capital in the phase diagrams.
+        - npoints       : number of points in the capital grid to be used for phase
+                          diagram plots.
     """
 
     # Create a figure
     fig, ax = plt.subplots()
 
     # Plot the loci of the pre and post-change models.
-    k_range = np.linspace(0.1*min(mod1.kss,mod2.kss),2*max(mod1.kss,mod2.kss),
-                          npoints)
+    k_range = np.linspace(k_min,k_max,npoints)
     mods = [mod1,mod2]
     colors = ['r','b']
-    labels = ['Pre-change','Post-change']
+    labels = ['Mod. 1','Mod. 2']
     for i in range(2):
 
         # Plot k0 locus
         ax.plot(k_range,mods[i].P*np.ones(npoints),
-                 linestyle = '--', color = colors[i],label = labels[i])
+                 linestyle = '--', color = colors[i],label = labels[i] + ' loci')
         # Plot lambda0 locus
         ax.plot(k_range,[mods[i].lambda0locus(x) for x in k_range],
                  linestyle = '--', color = colors[i])
         # Plot steady state
         ax.plot(mods[i].kss,mods[i].P,marker = '*', color = colors[i])
+        
+        # Plot stable arm
+        stab_arm = [mods[i].findLambda(k0 = x, k1 = mods[i].k1Func(x)) for x in k_range]
+        ax.plot(k_range, stab_arm, linestyle = '-', color = colors[i], label = labels[i] + ' stable arm.')
 
     return(ax)
 # %% [markdown]
@@ -123,7 +126,9 @@ Qmodel = Qmod(beta, tau, alpha, omega, zeta, delta, psi)
 Qmodel.solve()
 
 # %% [markdown]
-# Then in Dolo:
+# Then in Dolo.
+#
+# There is an important difference. The implementation in Dolo treats the interest rate, technological factor, tax rate, and investment tax credit as not parameters but exogenous variables subject to change.
 
 # %%
 ## Dolo
@@ -221,7 +226,7 @@ Q_high_psi.solve()
 # Now we draw the phase diagrams of our base model "Qmodel"
 # and the new one "Q_high_psi", and store the plot in
 # object "ax"
-ax = phase_diagrams(mod1 = Qmodel, mod2 = Q_high_psi)
+ax = phase_diagrams(mod1 = Qmodel, mod2 = Q_high_psi, k_min = 2, k_max = 8)
 
 # Now we can add the behavior of lambda and k to the diagram.
 ax.plot(response.k, response.lambda_1, '.k',label = 'Opt. Response')
