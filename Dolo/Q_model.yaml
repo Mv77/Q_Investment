@@ -11,14 +11,14 @@ symbols:
 
 
 definitions:
-  y: psi*k**alpha
-  y_k: psi*alpha*k**(alpha-1)
+  y: psi*k^alpha
+  y_k: psi*alpha*k^(alpha-1)
   beta: 1/R
-  j: (k/2)*((i-delta*k)/k)**2*omega
+  j: (k/2)*((i-delta*k)/k)^2*omega
   xi: (i + j)*beta*(1-itc_1)
   iota: (i/k-delta)
   j_i: iota*omega
-  j_k: -(iota**2/2+iota*delta)*omega
+  j_k: -(iota^2/2+iota*delta)*omega
   lambda_1: (1+j_i)*(1-itc_1)
   q_1: lambda_1/(1-itc_1)
 
@@ -46,7 +46,7 @@ calibration:
   # Initial variable guess
   k: 1
   i: k*delta
-  pi: k**alpha - i
+  pi: k^alpha - i
   V: pi
   R: 1.02
   psi: 1
