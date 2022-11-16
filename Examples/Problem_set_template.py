@@ -1,12 +1,13 @@
 # ---
 # jupyter:
 #   jupytext:
+#     cell_metadata_json: true
 #     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       format_version: '1.3'
+#       jupytext_version: 1.13.1
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -25,6 +26,9 @@
 # The use of both tools will make us have to handle two representations of our problems, one as a Qmod object, and one as a Dolo model.
 #
 # Start by loading the tools we will be using.
+
+# %%
+# ! pip install dolo==0.4.9.12
 
 # %% {"code_folding": []}
 # Preamble: import the packages we will be using
