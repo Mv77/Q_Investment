@@ -7,11 +7,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.13.1
+#       jupytext_version: 1.14.0
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: macrops5
 #     language: python
-#     name: python3
+#     name: macrops5
 # ---
 
 # %% [markdown]
@@ -233,7 +233,7 @@ Q_high_psi.solve()
 ax = phase_diagrams(mod1 = Qmodel, mod2 = Q_high_psi, k_min = 2, k_max = 8)
 
 # Now we can add the behavior of lambda and k to the diagram.
-ax.plot(response.k, response.lambda_1, '.k',label = 'Opt. Response')
+ax.plot(response.k.loc[2:T], response.lambda_1.loc[1:T-1], '.k',label = 'Opt. Response')
 plt.legend()
 plt.xlabel('k')
 plt.ylabel('$\\lambda$')
